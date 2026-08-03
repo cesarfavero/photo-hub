@@ -42,11 +42,16 @@ export default async function EventPage({ params }: PageProps) {
   }
 
   return (
-    <main className="mx-auto w-full max-w-3xl px-4 pb-24 pt-6 sm:px-6">
+    <main className="bg-glow mx-auto w-full max-w-3xl px-4 pb-24 pt-6 sm:px-6">
       <EventHeader event={event} />
       <PhotoBooth event={event} frames={frames ?? []} />
-      <div id="galeria" className="mt-10 scroll-mt-6">
-        <h2 className="text-lg font-semibold">Galeria</h2>
+      <div id="galeria" className="mt-12 scroll-mt-6">
+        <div className="mb-1 flex items-end justify-between gap-4">
+          <h2 className="text-xl font-semibold tracking-tight">Galeria</h2>
+          <span className="text-sm text-muted-foreground">
+            {frames && frames.length > 0 ? "ao vivo" : ""}
+          </span>
+        </div>
         <p className="text-sm text-muted-foreground">
           Todas as fotos tiradas no evento.
         </p>

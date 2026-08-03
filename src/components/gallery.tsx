@@ -100,18 +100,18 @@ export function Gallery({ eventId }: { eventId: string }) {
               key={photo.id}
               type="button"
               onClick={() => setSelected(photo)}
-              className="mb-3 block w-full break-inside-avoid overflow-hidden rounded-xl bg-muted"
+              className="group relative mb-3 block w-full break-inside-avoid overflow-hidden rounded-xl bg-muted ring-1 ring-foreground/5 transition-shadow duration-200 hover:shadow-md"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={photo.public_url}
                 alt={photo.author_name ?? "Foto do evento"}
                 loading="lazy"
-                className="h-auto w-full transition-transform duration-200 hover:scale-[1.02]"
+                className="h-auto w-full transition-transform duration-300 group-hover:scale-[1.02]"
               />
               {photo.author_name ? (
-                <span className="flex items-center gap-1 px-2 py-1.5 text-xs font-medium text-muted-foreground">
-                  <UserRoundIcon className="size-3" />
+                <span className="absolute inset-x-2 bottom-2 flex w-fit items-center gap-1 rounded-full bg-white/85 px-2.5 py-1 text-xs font-medium text-foreground shadow-sm backdrop-blur">
+                  <UserRoundIcon className="size-3 text-muted-foreground" />
                   {photo.author_name}
                 </span>
               ) : null}

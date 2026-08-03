@@ -68,12 +68,21 @@ export function PhotoBooth({
   const [capturedUrl, setCapturedUrl] = useState<string | null>(null);
   const [authorName, setAuthorName] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [flash, setFlash] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const facingRef = useRef<FacingMode>("user");
+  const flashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const selectedFrame = frames.find((f) => f.id === selectedFrameId) ?? null;
+
+  useEffect(() => {
+    return () => {
+      if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
+      streamRef.current?.getTracks().forEach((t) => t.stop());
+    };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -129,6 +138,10 @@ export function PhotoBooth({
   const capture = async () => {
     const video = videoRef.current;
     if (!video || !video.videoWidth) return;
+
+    setFlash(true);
+    if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
+    flashTimerRef.current = setTimeout(() => setFlash(false), 450);
 
     const canvas = document.createElement("canvas");
     canvas.width = PHOTO_WIDTH;
@@ -223,155 +236,216 @@ export function PhotoBooth({
   };
 
   return (
-    <section
-      id="cabine"
-      className="rounded-2xl border bg-card shadow-sm"
-    >
+    <section id="cabine" className="rounded-2xl border bg-card shadow-sm">
       <div className="p-4 sm:p-6">
-        {step === "frame" && (
-          <FramePicker
-            frames={frames}
-            selectedFrameId={selectedFrameId}
-            onSelect={setSelectedFrameId}
-            onContinue={() => setStep("camera")}
-          />
-        )}
+        <StepIndicator step={step} />
 
-        {step === "camera" && (
-          <div className="flex flex-col items-center">
-            <div className="relative w-full max-w-[380px] overflow-hidden rounded-xl bg-black aspect-[3/4]">
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                muted
-                className={cn(
-                  "absolute inset-0 h-full w-full object-cover",
-                  facingMode === "user" && "-scale-x-100",
-                )}
-              />
-              {selectedFrame ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={selectedFrame.image_url}
-                  alt=""
-                  className="pointer-events-none absolute inset-0 h-full w-full object-cover"
+        <div
+          key={step}
+          className="animate-in fade-in-0 slide-in-from-bottom-2 duration-300"
+        >
+          {step === "frame" && (
+            <FramePicker
+              frames={frames}
+              selectedFrameId={selectedFrameId}
+              onSelect={setSelectedFrameId}
+              onContinue={() => setStep("camera")}
+            />
+          )}
+
+          {step === "camera" && (
+            <div className="flex flex-col items-center">
+              <div className="relative w-full max-w-[380px] overflow-hidden rounded-xl bg-black aspect-[3/4] ring-1 ring-foreground/10">
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  className={cn(
+                    "absolute inset-0 h-full w-full object-cover",
+                    facingMode === "user" && "-scale-x-100",
+                  )}
                 />
-              ) : null}
-              {cameraError ? (
-                <div className="absolute inset-0 flex items-center justify-center bg-black p-6 text-center text-sm text-white">
-                  {cameraError}
-                </div>
-              ) : null}
-            </div>
-
-            <div className="mt-5 flex w-full max-w-[380px] items-center justify-between">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setStep("frame")}
-                aria-label="Voltar"
-              >
-                <ChevronLeftIcon />
-              </Button>
-              <Button
-                size="icon"
-                className="size-16 rounded-full shadow-lg"
-                onClick={capture}
-                aria-label="Tirar foto"
-                disabled={!!cameraError}
-              >
-                <CameraIcon className="size-8" />
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={switchCamera}
-                aria-label="Trocar câmera"
-              >
-                <FlipHorizontalIcon />
-              </Button>
-            </div>
-            <p className="mt-3 text-xs text-muted-foreground">
-              Toque para tirar a foto. A moldura aparece sobre a câmera.
-            </p>
-          </div>
-        )}
-
-        {step === "captured" && capturedUrl && (
-          <div className="flex flex-col items-center">
-            <div className="relative w-full max-w-[380px] overflow-hidden rounded-xl bg-black aspect-[3/4]">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={capturedUrl}
-                alt="Foto capturada"
-                className="h-full w-full object-cover"
-              />
-            </div>
-
-            <div className="mt-5 w-full max-w-[380px] space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="author-name" className="flex items-center gap-2">
-                  <UserRoundIcon className="size-4" /> Seu nome (opcional)
-                </Label>
-                <Input
-                  id="author-name"
-                  value={authorName}
-                  onChange={(e) => setAuthorName(e.target.value)}
-                  placeholder="Ex.: Maria Souza"
-                  maxLength={60}
-                  className="h-11 text-base"
-                />
+                {selectedFrame ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={selectedFrame.image_url}
+                    alt=""
+                    className="pointer-events-none absolute inset-0 h-full w-full object-cover"
+                  />
+                ) : null}
+                {flash ? (
+                  <div className="animate-flash pointer-events-none absolute inset-0 z-10 bg-white" />
+                ) : null}
+                {cameraError ? (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black p-6 text-center text-sm text-white">
+                    {cameraError}
+                  </div>
+                ) : null}
               </div>
-              <div className="flex gap-3">
+
+              <div className="mt-6 flex w-full max-w-[380px] items-center justify-between px-6">
                 <Button
                   variant="outline"
-                  onClick={reset}
-                  className="flex-1"
-                  disabled={uploading}
+                  size="icon"
+                  onClick={() => setStep("frame")}
+                  aria-label="Voltar"
                 >
-                  <RefreshCwIcon /> Refazer
+                  <ChevronLeftIcon />
                 </Button>
+                <div className="relative">
+                  <span className="absolute inset-0 -m-2 rounded-full border-2 border-primary/15 transition-transform duration-200 group-active:scale-90" />
+                  <Button
+                    size="icon"
+                    className="size-16 rounded-full shadow-lg transition-transform duration-150 active:scale-95"
+                    onClick={capture}
+                    aria-label="Tirar foto"
+                    disabled={!!cameraError}
+                  >
+                    <CameraIcon className="size-8" />
+                  </Button>
+                </div>
                 <Button
-                  onClick={upload}
-                  className="flex-1"
-                  disabled={uploading}
+                  variant="outline"
+                  size="icon"
+                  onClick={switchCamera}
+                  aria-label="Trocar câmera"
                 >
-                  {uploading ? (
-                    <RefreshCwIcon className="animate-spin" />
-                  ) : (
-                    <CheckIcon />
-                  )}
-                  {uploading ? "Publicando…" : "Publicar"}
+                  <FlipHorizontalIcon />
+                </Button>
+              </div>
+              <p className="mt-4 text-xs text-muted-foreground">
+                Enquadre-se na moldura e toque no botão.
+              </p>
+            </div>
+          )}
+
+          {step === "captured" && capturedUrl && (
+            <div className="flex flex-col items-center">
+              <div className="relative w-full max-w-[380px] overflow-hidden rounded-xl bg-black aspect-[3/4] ring-1 ring-foreground/10">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={capturedUrl}
+                  alt="Foto capturada"
+                  className="h-full w-full object-cover"
+                />
+              </div>
+
+              <div className="mt-6 w-full max-w-[380px] space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="author-name" className="flex items-center gap-2">
+                    <UserRoundIcon className="size-4" /> Seu nome (opcional)
+                  </Label>
+                  <Input
+                    id="author-name"
+                    value={authorName}
+                    onChange={(e) => setAuthorName(e.target.value)}
+                    placeholder="Ex.: Maria Souza"
+                    maxLength={60}
+                    className="h-11 text-base"
+                  />
+                </div>
+                <div className="flex gap-3">
+                  <Button
+                    variant="outline"
+                    onClick={reset}
+                    className="flex-1"
+                    disabled={uploading}
+                  >
+                    <RefreshCwIcon /> Refazer
+                  </Button>
+                  <Button onClick={upload} className="flex-1" disabled={uploading}>
+                    {uploading ? (
+                      <RefreshCwIcon className="animate-spin" />
+                    ) : (
+                      <CheckIcon />
+                    )}
+                    {uploading ? "Publicando…" : "Publicar"}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {step === "success" && (
+            <div className="flex flex-col items-center gap-4 py-10 text-center">
+              <div className="relative flex size-20 items-center justify-center rounded-full bg-primary/10 text-primary">
+                <span className="absolute inset-0 rounded-full bg-primary/10 animate-ping" />
+                <PartyPopperIcon className="size-9" strokeWidth={1.5} />
+              </div>
+              <div>
+                <h3 className="text-xl font-semibold">Foto publicada!</h3>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Sua foto já está na galeria do evento.
+                </p>
+              </div>
+              <div className="mt-2 flex flex-col gap-3 sm:flex-row">
+                <Button onClick={scrollToGallery}>
+                  <ImageIcon /> Ver galeria
+                </Button>
+                <Button variant="outline" onClick={reset}>
+                  <CameraIcon /> Tirar outra
                 </Button>
               </div>
             </div>
-          </div>
-        )}
-
-        {step === "success" && (
-          <div className="flex flex-col items-center gap-4 py-8 text-center">
-            <div className="flex size-16 items-center justify-center rounded-full bg-primary text-primary-foreground">
-              <PartyPopperIcon className="size-8" />
-            </div>
-            <div>
-              <h3 className="text-xl font-semibold">Foto publicada!</h3>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Sua foto já está na galeria do evento.
-              </p>
-            </div>
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <Button onClick={scrollToGallery}>
-                <ImageIcon /> Ver galeria
-              </Button>
-              <Button variant="outline" onClick={reset}>
-                <CameraIcon /> Tirar outra
-              </Button>
-            </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </section>
+  );
+}
+
+function StepIndicator({ step }: { step: Step }) {
+  const steps: { key: Step; label: string }[] = [
+    { key: "frame", label: "Moldura" },
+    { key: "camera", label: "Foto" },
+    { key: "captured", label: "Nome" },
+    { key: "success", label: "Publicar" },
+  ];
+  const currentIndex = steps.findIndex((s) => s.key === step);
+
+  return (
+    <ol className="mb-6 flex items-center justify-center gap-1 sm:gap-2">
+      {steps.map((s, i) => {
+        const done = i < currentIndex;
+        const active = i === currentIndex;
+        return (
+          <li
+            key={s.key}
+            className={cn(
+              "flex items-center gap-1 sm:gap-2 text-xs transition-colors",
+              active
+                ? "font-medium text-foreground"
+                : done
+                  ? "text-foreground/70"
+                  : "text-muted-foreground/60",
+            )}
+          >
+            <span
+              className={cn(
+                "flex size-5 items-center justify-center rounded-full border text-[10px] transition-colors",
+                done
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : active
+                    ? "border-foreground/30 bg-foreground/5"
+                    : "border-border",
+              )}
+            >
+              {done ? <CheckIcon className="size-3" /> : i + 1}
+            </span>
+            <span className="hidden sm:inline">{s.label}</span>
+            {i < steps.length - 1 ? (
+              <span
+                className={cn(
+                  "h-px w-4 sm:w-6",
+                  i < currentIndex ? "bg-primary/50" : "bg-border",
+                )}
+              />
+            ) : null}
+          </li>
+        );
+      })}
+    </ol>
   );
 }
 
@@ -389,10 +463,10 @@ function FramePicker({
   const options = [{ id: null }, ...frames];
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-6">
       <div className="text-center">
         <h2 className="text-lg font-semibold">Escolha sua moldura</h2>
-        <p className="text-sm text-muted-foreground">
+        <p className="mt-1 text-sm text-muted-foreground">
           Selecione a moldura e depois tire a foto.
         </p>
       </div>
@@ -415,10 +489,10 @@ function FramePicker({
               type="button"
               onClick={() => onSelect(id)}
               className={cn(
-                "group relative aspect-[3/4] overflow-hidden rounded-lg border-2 bg-muted transition-all",
+                "group relative aspect-[3/4] overflow-hidden rounded-xl border-2 bg-muted transition-all duration-200",
                 selected
-                  ? "border-primary ring-2 ring-primary/30"
-                  : "border-transparent hover:border-border",
+                  ? "border-primary ring-2 ring-primary/25 shadow-md"
+                  : "border-transparent hover:border-foreground/15 hover:shadow-sm",
               )}
             >
               {frame ? (
@@ -426,7 +500,7 @@ function FramePicker({
                 <img
                   src={frame.image_url}
                   alt={frame.name}
-                  className="h-full w-full object-cover"
+                  className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
                 />
               ) : (
                 <div className="flex h-full w-full items-center justify-center text-muted-foreground">
@@ -434,25 +508,19 @@ function FramePicker({
                 </div>
               )}
               {selected ? (
-                <span className="absolute right-1.5 top-1.5 flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                <span className="absolute right-1.5 top-1.5 flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm">
                   <CheckIcon className="size-3" />
                 </span>
               ) : null}
-              {frame ? (
-                <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent px-1.5 pb-1 pt-4 text-left text-[10px] font-medium text-white">
-                  {frame.name}
-                </span>
-              ) : (
-                <span className="absolute inset-x-0 bottom-0 bg-black/40 px-1.5 pb-1 pt-4 text-left text-[10px] font-medium text-white">
-                  Sem moldura
-                </span>
-              )}
+              <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent px-1.5 pb-1 pt-4 text-left text-[10px] font-medium text-white">
+                {frame ? frame.name : "Sem moldura"}
+              </span>
             </button>
           );
         })}
       </div>
 
-      <Button size="lg" className="w-full" onClick={onContinue}>
+      <Button size="lg" className="w-full gap-2 rounded-full" onClick={onContinue}>
         <CameraIcon /> Continuar para a foto
       </Button>
     </div>

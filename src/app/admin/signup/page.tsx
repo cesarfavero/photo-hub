@@ -24,18 +24,18 @@ export default function AdminSignupPage() {
   }
 
   return (
-    <main className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 py-12">
-      <div className="w-full max-w-sm">
+    <main className="bg-glow flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 py-12">
+      <div className="animate-in fade-in-0 slide-in-from-bottom-3 duration-400 w-full max-w-sm">
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-            <CameraIcon className="size-6" />
+          <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary/70 text-primary-foreground shadow-[0_12px_28px_-12px_oklch(0.25_0.03_55/0.5)]">
+            <CameraIcon className="size-6" strokeWidth={1.75} />
           </div>
-          <h1 className="text-2xl font-bold">Criar conta</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Criar conta</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Conta de administrador dos eventos.
           </p>
         </div>
-        <div className="rounded-xl border bg-card p-6 shadow-sm">
+        <div className="rounded-2xl border bg-card p-6 shadow-sm">
           <AuthForm mode="signup" />
         </div>
         <p className="mt-4 text-center text-sm text-muted-foreground">

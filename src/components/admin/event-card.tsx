@@ -74,7 +74,7 @@ export function EventCard({
   };
 
   return (
-    <div className="flex flex-col gap-4 rounded-xl border bg-card p-4 shadow-sm sm:flex-row">
+    <div className="flex flex-col gap-5 rounded-2xl border bg-card p-5 shadow-sm transition-shadow duration-200 hover:shadow-md sm:flex-row">
       <div className="flex flex-1 flex-col gap-3">
         <div className="flex items-start justify-between gap-2">
           <div>
@@ -149,7 +149,7 @@ export function EventCard({
         </div>
       </div>
 
-      <div className="flex items-center gap-4 self-center sm:self-start">
+      <div className="flex items-center gap-4 self-center rounded-xl bg-white p-2 shadow-sm ring-1 ring-foreground/5 sm:self-start">
         <QrCode url={eventUrl} size={140} />
       </div>
     </div>

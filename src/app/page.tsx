@@ -1,58 +1,68 @@
 import Link from "next/link";
-import { CameraIcon, ImagesIcon, QrCodeIcon } from "lucide-react";
+import { ArrowRightIcon, CameraIcon, ImagesIcon, QrCodeIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+
+const steps = [
+  {
+    icon: QrCodeIcon,
+    title: "1 · Leia o QR code",
+    text: "O convidado chega à cabine pela leitura do QR code, sem instalar nada.",
+  },
+  {
+    icon: ImagesIcon,
+    title: "2 · Escolha a moldura",
+    text: "Seleciona a moldura do evento e tira a foto com a câmera do celular.",
+  },
+  {
+    icon: CameraIcon,
+    title: "3 · Publique na galeria",
+    text: "A foto entra na galeria ao vivo, para todo mundo ver em tempo real.",
+  },
+];
 
 export default function Home() {
   return (
-    <main className="flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center gap-8 px-4 py-16 text-center">
-      <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg">
-        <CameraIcon className="size-8" />
-      </div>
-      <div className="space-y-3">
-        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-          Photo Hub
-        </h1>
-        <p className="mx-auto max-w-md text-muted-foreground sm:text-lg">
-          Cabine de fotos digital para eventos. Escaneie o QR code, escolha a
-          moldura e registre o momento na galeria.
-        </p>
-      </div>
-      <div className="flex flex-col gap-3 sm:flex-row">
-        <Link href="/admin">
-          <Button size="lg">
-            <QrCodeIcon /> Painel do evento
-          </Button>
-        </Link>
-      </div>
-      <div className="grid w-full max-w-3xl grid-cols-1 gap-4 sm:grid-cols-3">
-        {[
-          {
-            icon: <QrCodeIcon className="size-5" />,
-            title: "1. QR Code",
-            text: "A pessoa chega ao evento pela leitura do QR code.",
-          },
-          {
-            icon: <ImagesIcon className="size-5" />,
-            title: "2. Moldura + Foto",
-            text: "Escolhe a moldura e tira a foto na hora, no celular.",
-          },
-          {
-            icon: <CameraIcon className="size-5" />,
-            title: "3. Galeria",
-            text: "Todas as fotos ficam na galeria, para todo mundo ver.",
-          },
-        ].map((item) => (
-          <div
-            key={item.title}
-            className="rounded-xl border bg-card p-5 text-left shadow-sm"
-          >
-            <div className="mb-3 flex size-9 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-              {item.icon}
-            </div>
-            <h2 className="font-semibold">{item.title}</h2>
-            <p className="mt-1 text-sm text-muted-foreground">{item.text}</p>
+    <main className="bg-glow flex flex-1 flex-col">
+      <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col items-center px-4 pb-24 pt-16 sm:px-6 sm:pt-24">
+        <div className="animate-in fade-in-0 slide-in-from-bottom-4 duration-500 flex flex-col items-center text-center">
+          <div className="animate-float-slow mb-8 flex h-20 w-20 items-center justify-center rounded-[1.75rem] bg-gradient-to-br from-primary to-primary/70 text-primary-foreground shadow-[0_16px_40px_-12px_oklch(0.25_0.03_55/0.45)]">
+            <CameraIcon className="size-9" strokeWidth={1.75} />
           </div>
-        ))}
+          <h1 className="max-w-2xl text-4xl font-semibold tracking-tight text-balance sm:text-5xl">
+            A cabine de fotos para o seu evento
+          </h1>
+          <p className="mt-5 max-w-lg text-pretty text-muted-foreground sm:text-lg">
+            QR code + moldura + foto + galeria ao vivo. Tudo funciona direto no
+            celular dos convidados — sem aplicativo, sem cadastro.
+          </p>
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            <Button size="lg" className="gap-2 rounded-full px-7" render={<Link href="/admin" />}>
+              Criar meu evento
+              <ArrowRightIcon className="size-4" />
+            </Button>
+          </div>
+        </div>
+
+        <div
+          className="mt-16 grid w-full max-w-3xl grid-cols-1 gap-4 sm:mt-20 sm:grid-cols-3"
+          style={{ animationDelay: "120ms" }}
+        >
+          {steps.map((step, i) => (
+            <div
+              key={step.title}
+              className="group animate-in fade-in-0 slide-in-from-bottom-4 duration-500 rounded-2xl border bg-card/80 p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-foreground/15 hover:shadow-md"
+              style={{ animationDelay: `${i * 80}ms` }}
+            >
+              <div className="mb-4 flex size-10 items-center justify-center rounded-xl bg-muted text-foreground/70 transition-colors duration-300 group-hover:bg-primary group-hover:text-primary-foreground">
+                <step.icon className="size-5" strokeWidth={1.75} />
+              </div>
+              <h2 className="text-sm font-semibold">{step.title}</h2>
+              <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+                {step.text}
+              </p>
+            </div>
+          ))}
+        </div>
       </div>
     </main>
   );
