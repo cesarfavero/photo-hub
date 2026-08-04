@@ -33,6 +33,7 @@ export function Gallery({ eventId }: { eventId: string }) {
       .select("*")
       .eq("event_id", eventId)
       .eq("approved", true)
+      .eq("archived", false)
       .order("created_at", { ascending: false });
     setPhotos(data ?? []);
     setLoading(false);
@@ -47,6 +48,7 @@ export function Gallery({ eventId }: { eventId: string }) {
         .select("*")
         .eq("event_id", eventId)
         .eq("approved", true)
+        .eq("archived", false)
         .order("created_at", { ascending: false });
       if (active) {
         setPhotos(data ?? []);

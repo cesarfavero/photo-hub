@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
+import { themeVars } from "@/lib/theme";
 import { Gallery } from "@/components/gallery";
 import { GalleryHeader } from "@/components/gallery-header";
 
@@ -35,7 +36,10 @@ export default async function GalleryPage({ params }: PageProps) {
   }
 
   return (
-    <main className="bg-glow flex min-h-dvh flex-col">
+    <main
+      style={themeVars(event.theme_color)}
+      className="bg-glow flex min-h-dvh flex-col"
+    >
       <GalleryHeader event={event} />
       <div className="mx-auto w-full flex-1 px-0 sm:px-6">
         <Gallery eventId={event.id} />

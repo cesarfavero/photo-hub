@@ -14,6 +14,7 @@ create table if not exists public.events (
   description text default '',
   cover_url text default '',
   active boolean not null default true,
+  theme_color text not null default '#171717',
   created_at timestamptz not null default now()
 );
 
@@ -36,6 +37,7 @@ create table if not exists public.photos (
   public_url text not null,
   author_name text,
   approved boolean not null default true,
+  archived boolean not null default false,
   created_at timestamptz not null default now()
 );
 

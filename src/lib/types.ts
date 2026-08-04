@@ -5,6 +5,7 @@ export type Event = {
   description: string;
   cover_url: string;
   active: boolean;
+  theme_color: string;
   created_at: string;
 };
 
@@ -25,6 +26,7 @@ export type Photo = {
   public_url: string;
   author_name: string | null;
   approved: boolean;
+  archived: boolean;
   created_at: string;
 };
 

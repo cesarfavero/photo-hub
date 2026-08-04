@@ -2,13 +2,15 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { LoaderCircleIcon, SaveIcon } from "lucide-react";
+import { LoaderCircleIcon, PaletteIcon, SaveIcon } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { createClient } from "@/lib/supabase/client";
+import { THEME_COLORS } from "@/lib/theme";
+import { cn } from "@/lib/utils";
 import type { Event } from "@/lib/types";
 
 function slugify(text: string) {
@@ -26,6 +28,7 @@ export function EventSettings({ event }: { event: Event }) {
   const [name, setName] = useState(event.name);
   const [description, setDescription] = useState(event.description);
   const [slug, setSlug] = useState(event.slug);
+  const [themeColor, setThemeColor] = useState(event.theme_color);
   const [saving, setSaving] = useState(false);
 
   const save = async () => {
@@ -43,6 +46,7 @@ export function EventSettings({ event }: { event: Event }) {
         name: name.trim(),
         description: description.trim(),
         slug: slug.trim().toLowerCase(),
+        theme_color: themeColor,
       })
       .eq("id", event.id);
     setSaving(false);
@@ -94,6 +98,55 @@ export function EventSettings({ event }: { event: Event }) {
             onChange={(e) => setSlug(slugify(e.target.value))}
             className="h-11"
           />
+        </div>
+        <div className="space-y-2 sm:col-span-2">
+          <Label>Tema do evento</Label>
+          <p className="text-xs text-muted-foreground">
+            Escolha a cor dos botões e destaques na página do evento.
+          </p>
+          <div className="flex flex-wrap items-center gap-2.5">
+            {THEME_COLORS.map((preset) => {
+              const selected =
+                themeColor.toLowerCase() === preset.color.toLowerCase();
+              return (
+                <button
+                  key={preset.color}
+                  type="button"
+                  onClick={() => setThemeColor(preset.color)}
+                  aria-label={`Cor ${preset.name}`}
+                  title={preset.name}
+                  className={cn(
+                    "size-8 rounded-full ring-2 ring-offset-2 ring-offset-background transition-transform duration-150 hover:scale-110 active:scale-95",
+                    selected
+                      ? "ring-foreground"
+                      : "ring-transparent hover:ring-foreground/30",
+                  )}
+                  style={{ backgroundColor: preset.color }}
+                />
+              );
+            })}
+            <label
+              className="relative flex size-8 cursor-pointer items-center justify-center rounded-full border-2 border-dashed border-foreground/25 text-foreground/60 transition-colors hover:border-foreground/40 hover:text-foreground"
+              title="Cor personalizada"
+            >
+              <PaletteIcon className="size-4" />
+              <input
+                type="color"
+                value={
+                  THEME_COLORS.some(
+                    (p) =>
+                      p.color.toLowerCase() ===
+                      themeColor.toLowerCase(),
+                  )
+                    ? themeColor
+                    : "#171717"
+                }
+                onChange={(e) => setThemeColor(e.target.value)}
+                className="absolute inset-0 size-full cursor-pointer opacity-0"
+                aria-label="Escolher cor personalizada"
+              />
+            </label>
+          </div>
         </div>
       </div>
       <div className="mt-4">

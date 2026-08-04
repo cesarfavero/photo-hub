@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { ArrowRightIcon, ImagesIcon } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { themeVars } from "@/lib/theme";
 import { PhotoBooth } from "@/components/photo-booth";
 import { EventHeader } from "@/components/event-header";
 
@@ -43,7 +44,10 @@ export default async function EventPage({ params }: PageProps) {
   }
 
   return (
-    <main className="bg-glow flex min-h-dvh flex-col">
+    <main
+      style={themeVars(event.theme_color)}
+      className="bg-glow flex min-h-dvh flex-col"
+    >
       <div className="mx-auto w-full max-w-5xl flex-1 px-4 pb-24 pt-10 sm:px-6 sm:pt-14">
         <EventHeader event={event} />
         <PhotoBooth event={event} frames={frames ?? []} />

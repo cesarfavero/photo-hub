@@ -8,8 +8,7 @@ import {
   ImagesIcon,
   Settings2Icon,
   Trash2Icon,
-} from "lucide-react";
-import { toast } from "sonner";
+} from "lucide-react";import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -129,6 +128,9 @@ export function EventCard({
           </Button>
           <Button variant="outline" size="sm" nativeButton={false} render={<Link href={`/admin/events/${event.id}`} />}>
             <Settings2Icon /> Gerenciar
+          </Button>
+          <Button variant="outline" size="sm" nativeButton={false} render={<Link href={`/admin/events/${event.id}/galeria`} />}>
+            <ImagesIcon /> Galeria
           </Button>
           <AlertDialog>
             <AlertDialogTrigger
