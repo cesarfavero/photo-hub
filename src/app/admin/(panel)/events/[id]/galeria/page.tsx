@@ -19,6 +19,10 @@ export default async function EventGalleryPage({
   const { id } = await params;
   const supabase = await createClient();
 
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   const [{ data: event }, { data: photos }] = await Promise.all([
     supabase.from("events").select("*").eq("id", id).single(),
     supabase
@@ -28,7 +32,7 @@ export default async function EventGalleryPage({
       .order("created_at", { ascending: false }),
   ]);
 
-  if (!event) {
+  if (!event || (user && event.user_id && event.user_id !== user.id)) {
     notFound();
   }
 

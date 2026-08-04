@@ -7,6 +7,7 @@ export type Event = {
   active: boolean;
   theme_color: string;
   icon: string;
+  user_id: string | null;
   created_at: string;
 };
 

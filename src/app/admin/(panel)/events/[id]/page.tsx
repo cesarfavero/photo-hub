@@ -18,6 +18,10 @@ export default async function ManageEventPage({
   const { id } = await params;
   const supabase = await createClient();
 
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   const [{ data: event }, { data: frames }, { data: photos }] =
     await Promise.all([
       supabase.from("events").select("*").eq("id", id).single(),
@@ -33,7 +37,7 @@ export default async function ManageEventPage({
         .order("created_at", { ascending: false }),
     ]);
 
-  if (!event) {
+  if (!event || (user && event.user_id && event.user_id !== user.id)) {
     notFound();
   }
 

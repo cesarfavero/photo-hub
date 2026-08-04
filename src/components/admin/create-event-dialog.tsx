@@ -56,11 +56,15 @@ export function CreateEventDialog() {
     }
     setLoading(true);
     const supabase = createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     const { error } = await supabase.from("events").insert({
       name: name.trim(),
       description: description.trim(),
       slug: slug.trim().toLowerCase(),
       icon,
+      user_id: user?.id ?? null,
     });
     setLoading(false);
     if (error) {

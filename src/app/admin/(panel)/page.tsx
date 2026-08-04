@@ -11,13 +11,23 @@ export const metadata: Metadata = {
 export default async function AdminDashboardPage() {
   const supabase = await createClient();
 
-  const [{ data: events }, { data: photos }] = await Promise.all([
-    supabase
-      .from("events")
-      .select("*")
-      .order("created_at", { ascending: false }),
-    supabase.from("photos").select("event_id, approved"),
-  ]);
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const { data: events } = await supabase
+    .from("events")
+    .select("*")
+    .eq("user_id", user?.id)
+    .order("created_at", { ascending: false });
+
+  const eventIds = (events ?? []).map((event) => event.id);
+  const { data: photos } = eventIds.length
+    ? await supabase
+        .from("photos")
+        .select("event_id, approved")
+        .in("event_id", eventIds)
+    : { data: [] };
 
   const stats = new Map<string, { total: number; approved: number }>();
   for (const photo of photos ?? []) {
