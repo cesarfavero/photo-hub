@@ -10,5 +10,10 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 ## Regras do projeto
 
-- Sempre fazer commit e push para `main` ao concluir uma tarefa (o deploy na Vercel é automático).
+- `main` é **produção** (`hub.ctygroup.co`). Nada é commitado direto nela: desenvolvimento acontece na branch `homologacao` (deploy automático de preview na Vercel) e só vai para `main` após aprovação e merge.
+- Banco compartilhado (Supabase): alterações de schema sempre via **migrações aditivas** em `supabase/migrations/` (ex.: `0004_...sql`), sem drop/recreate de colunas de outras migrações.
 - Commits em português, curtos e descritivos (ex.: `fix: ...`, `feat: ...`, `style: ...`).
+- Ao concluir uma tarefa em `homologacao`, fazer commit e push para `origin/homologacao` (o preview sobe sozinho). Promoção para produção = merge `homologacao` → `main` + push.
+- Congelar produção na véspera do evento dia 8; depois disso, qualquer mudança só após merge aprovado em homologação.
+
+Detalhes completos do workflow em `HOMOLOGACAO.md`.
