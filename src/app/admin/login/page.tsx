@@ -57,7 +57,7 @@ export default async function AdminLoginPage() {
               A cabine de fotos do seu evento
             </h2>
             <p className="mt-2 text-sm leading-relaxed text-primary-foreground/80">
-              Tudo funciona direto no celular dos convidados — sem aplicativo,
+              Tudo funciona direto no celular dos convidados, sem aplicativo,
               sem cadastro.
             </p>
           </div>
