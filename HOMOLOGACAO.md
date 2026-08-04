@@ -15,6 +15,11 @@
 
 Para descobrir a URL do preview: `gh run list` → abrir o deployment, ou no painel da Vercel (projeto `photo-hub`) → Deployment.
 
+## Runtime
+
+- **Node 22 (LTS)** é obrigatório (`.nvmrc` + `engines`). O `@tensorflow/tfjs-node` usado na análise de fotos depende de APIs removidas no Node 24+ (ex.: `util.isNullOrUndefined`). Usar `nvm use` / `.nvmrc` para garantir a versão.
+- Localmente: `nvm use 22 && npm run dev`.
+
 ## Ciclo normal
 
 1. Garantir estar na branch correta: `git checkout homologacao && git pull`.
