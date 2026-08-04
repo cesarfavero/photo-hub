@@ -563,8 +563,6 @@ function FramePicker({
   onSelect: (id: string | null) => void;
   onContinue: () => void;
 }) {
-  const options = [{ id: null }, ...frames];
-
   return (
     <div className="flex flex-col gap-6">
       <div className="text-center">
@@ -576,44 +574,37 @@ function FramePicker({
 
       {frames.length === 0 ? null : (
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 sm:gap-3 lg:grid-cols-5">
-          {options.map(({ id }) => {
-            const frame = frames.find((f) => f.id === id);
-            const selected = selectedFrameId === id;
-            return (
-              <button
-                key={id ?? "none"}
-                type="button"
-                onClick={() => onSelect(id)}
-                className={cn(
-                  "group relative aspect-[3/4] overflow-hidden rounded-lg border-2 bg-muted transition-all duration-200 sm:rounded-xl",
-                  selected
-                    ? "border-primary ring-2 ring-primary/25 shadow-md"
-                    : "border-transparent hover:border-foreground/15 hover:shadow-sm",
-                )}
-              >
-                {frame ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={frame.image_url}
-                    alt={frame.name}
-                    className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
-                  />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center text-muted-foreground">
-                    <ImageIcon className="size-6" />
-                  </div>
-                )}
-                {selected ? (
-                  <span className="absolute right-1.5 top-1.5 flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm">
-                    <CheckIcon className="size-3" />
-                  </span>
-                ) : null}
-                <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent px-1.5 pb-1 pt-4 text-left text-[10px] font-medium text-white">
-                  {frame ? frame.name : "Sem moldura"}
-                </span>
-              </button>
-            );
-          })}
+      {frames.map((frame) => {
+        const selected = selectedFrameId === frame.id;
+        return (
+          <button
+            key={frame.id}
+            type="button"
+            onClick={() => onSelect(frame.id)}
+            className={cn(
+              "group relative aspect-[3/4] overflow-hidden rounded-lg border-2 bg-muted transition-all duration-200 sm:rounded-xl",
+              selected
+                ? "border-primary ring-2 ring-primary/25 shadow-md"
+                : "border-transparent hover:border-foreground/15 hover:shadow-sm",
+            )}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={frame.image_url}
+              alt={frame.name}
+              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+            />
+            {selected ? (
+              <span className="absolute right-1.5 top-1.5 flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm">
+                <CheckIcon className="size-3" />
+              </span>
+            ) : null}
+            <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent px-1.5 pb-1 pt-4 text-left text-[10px] font-medium text-white">
+              {frame.name}
+            </span>
+          </button>
+        );
+      })}
         </div>
       )}
 
