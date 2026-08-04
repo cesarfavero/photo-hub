@@ -1,5 +1,7 @@
 import {
   ActivityIcon,
+  ArrowDownRightIcon,
+  ArrowUpRightIcon,
   CameraIcon,
   CheckCheckIcon,
   ClockIcon,
@@ -18,6 +20,7 @@ import {
   countBefore,
   createdWithin,
   hourlyDistribution,
+  periodDelta,
   photosPerDay,
   pctGrowth,
   sumRecent,
@@ -54,12 +57,16 @@ export async function DashboardAdmin() {
   const pending = photosList.filter((p) => !p.approved && !p.archived);
 
   const today = photosPerDay(photosList, 1)[0].count;
+  const yesterday = photosPerDay(photosList, 2)[0].count;
+  const todayDelta = pctGrowth(today, yesterday);
   const photosLast7 = sumRecent(photosList, 7);
   const photosPrev7 = countBefore(photosList, 7);
   const weeklyGrowth = pctGrowth(photosLast7, photosPrev7);
 
   const newClients7 = createdWithin(clients, 7);
   const newEvents30 = createdWithin(eventsList, 30);
+  const deltaNewClients = periodDelta(clients, 7);
+  const deltaNewEvents = periodDelta(eventsList, 30);
 
   const approvalRate = photosList.length
     ? Math.round((approved.length / photosList.length) * 100)
@@ -90,36 +97,45 @@ export async function DashboardAdmin() {
       value: activeClients.length,
       sub: `${clients.length - activeClients.length} bloqueados`,
       icon: UsersIcon,
+      delta: deltaNewClients.pct,
+      deltaHint: "novos (7d)",
     },
     {
       label: "Eventos ativos",
       value: activeEvents.length,
       sub: `${eventsList.length} no total`,
       icon: ImagesIcon,
+      delta: deltaNewEvents.pct,
+      deltaHint: "novos (30d)",
     },
     {
       label: "Fotos hoje",
       value: today,
       sub: `${photosLast7} nos últimos 7 dias`,
       icon: CameraIcon,
+      delta: todayDelta,
+      deltaHint: "vs ontem",
     },
     {
       label: "Fotos no total",
       value: photosList.length,
       sub: `${approved.length} publicadas`,
       icon: FlameIcon,
+      delta: null,
     },
     {
       label: "Pendentes",
       value: pending.length,
       sub: "aguardando aprovação",
       icon: ClockIcon,
+      delta: null,
     },
     {
       label: "Taxa de aprovação",
       value: `${approvalRate}%`,
       sub: `${approved.length} de ${photosList.length}`,
       icon: CheckCheckIcon,
+      delta: null,
     },
   ];
 
@@ -175,7 +191,28 @@ export async function DashboardAdmin() {
               <p className="mt-1.5 text-2xl font-bold tabular-nums">
                 {kpi.value}
               </p>
-              <p className="text-[11px] text-muted-foreground">{kpi.sub}</p>
+              <div className="flex items-center justify-between gap-1">
+                <p className="truncate text-[11px] text-muted-foreground">
+                  {kpi.sub}
+                </p>
+                {kpi.delta !== null && kpi.delta !== undefined ? (
+                  <span
+                    className={cn(
+                      "flex shrink-0 items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums",
+                      kpi.delta >= 0
+                        ? "bg-emerald-500/10 text-emerald-600"
+                        : "bg-red-500/10 text-red-600",
+                    )}
+                  >
+                    {kpi.delta >= 0 ? (
+                      <ArrowUpRightIcon className="size-3" />
+                    ) : (
+                      <ArrowDownRightIcon className="size-3" />
+                    )}
+                    {Math.abs(kpi.delta)}%
+                  </span>
+                ) : null}
+              </div>
             </div>
           ))}
         </div>

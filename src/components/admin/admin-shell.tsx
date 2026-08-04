@@ -7,6 +7,7 @@ import {
   BarChart3Icon,
   CameraIcon,
   ExternalLinkIcon,
+  FileTextIcon,
   HomeIcon,
   LogOutIcon,
   MenuIcon,
@@ -21,6 +22,7 @@ const baseLinks = [{ href: "/admin", label: "Início", icon: HomeIcon }];
 
 const adminLinks = [
   { href: "/admin/metricas", label: "Métricas", icon: BarChart3Icon },
+  { href: "/admin/relatorios", label: "Relatórios", icon: FileTextIcon },
   { href: "/admin/clientes", label: "Clientes", icon: UsersIcon },
   { href: "/admin/configuracoes", label: "Configurações", icon: SettingsIcon },
 ];

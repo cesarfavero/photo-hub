@@ -120,3 +120,78 @@ export function average(list: number[]) {
   if (list.length === 0) return 0;
   return list.reduce((a, b) => a + b, 0) / list.length;
 }
+
+export function filterPeriod<T extends HasCreatedAt>(
+  items: T[],
+  days: number | null,
+) {
+  if (!days) return items;
+  const start = daysAgo(days);
+  return items.filter((i) => new Date(i.created_at) >= start);
+}
+
+export function periodDelta<T extends HasCreatedAt>(
+  items: T[],
+  days: number | null,
+): { current: number; previous: number; pct: number | null } {
+  if (!days) return { current: items.length, previous: items.length, pct: null };
+  const now = Date.now();
+  const span = days * 864e5;
+  const prevStart = now - span * 2;
+  const curStart = now - span;
+  let current = 0;
+  let previous = 0;
+  for (const item of items) {
+    const t = new Date(item.created_at).getTime();
+    if (t >= curStart) current += 1;
+    else if (t >= prevStart) previous += 1;
+  }
+  return { current, previous, pct: pctGrowth(current, previous) };
+}
+
+export type TrendPoint = { label: string; value: number };
+
+export function trend(
+  photos: HasCreatedAt[],
+  days: number | null,
+): TrendPoint[] {
+  const startOfWeek = (d: Date) => {
+    const x = startOfDay(d);
+    x.setDate(x.getDate() - ((x.getDay() + 6) % 7));
+    return x;
+  };
+  const byKey = new Map<string, number>();
+  for (const photo of photos) {
+    const d = new Date(photo.created_at);
+    const key =
+      days === null || days > 62
+        ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`
+        : days > 31
+          ? startOfWeek(d).toDateString()
+          : startOfDay(d).toDateString();
+    byKey.set(key, (byKey.get(key) ?? 0) + 1);
+  }
+  const entries = [...byKey.entries()].sort((a, b) =>
+    a[0].localeCompare(b[0]),
+  );
+  return entries.map(([key, value]) => {
+    let label: string;
+    if (days === null || days > 62) {
+      const [y, m] = key.split("-");
+      label = new Date(Number(y), Number(m) - 1, 1).toLocaleDateString("pt-BR", {
+        month: "short",
+      });
+    } else if (days > 31) {
+      label = new Date(key).toLocaleDateString("pt-BR", {
+        day: "2-digit",
+        month: "2-digit",
+      });
+    } else {
+      label = new Date(key).toLocaleDateString("pt-BR", {
+        day: "2-digit",
+        month: "2-digit",
+      });
+    }
+    return { label, value };
+  });
+}
