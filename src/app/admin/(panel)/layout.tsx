@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation";
+import { AdminShell } from "@/components/admin/admin-shell";
 import { createClient } from "@/lib/supabase/server";
+import { getSiteName } from "@/lib/site";
 
 export default async function PanelLayout({
   children,
@@ -26,11 +28,15 @@ export default async function PanelLayout({
     redirect("/admin/login");
   }
 
+  const siteName = await getSiteName();
+
   return (
-    <div className="bg-glow flex-1">
-      <div className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6">
-        {children}
-      </div>
-    </div>
+    <AdminShell
+      siteName={siteName}
+      userEmail={user.email ?? ""}
+      isAdmin={profile?.is_admin ?? false}
+    >
+      {children}
+    </AdminShell>
   );
 }

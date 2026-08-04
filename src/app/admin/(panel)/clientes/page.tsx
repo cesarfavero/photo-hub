@@ -56,7 +56,6 @@ export default async function ClientsPage() {
       <AdminHeader
         title="Clientes"
         subtitle="Gerencie os clientes da plataforma: veja o uso e bloqueie quando necessário."
-        isAdmin
       />
       <div className="space-y-4">
         {clients.length === 0 ? (

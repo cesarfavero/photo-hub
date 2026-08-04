@@ -36,7 +36,6 @@ export default async function SettingsPage() {
       <AdminHeader
         title="Configurações"
         subtitle="Personalize o Photo Hub da forma que você quiser."
-        isAdmin
       />
       <div className="flex items-start gap-3 rounded-2xl border bg-card p-5 shadow-sm">
         <div className="flex size-10 items-center justify-center rounded-xl bg-muted text-foreground/70">

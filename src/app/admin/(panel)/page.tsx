@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
-import { AdminHeader } from "@/components/admin/admin-header";
-import { CreateEventDialog } from "@/components/admin/create-event-dialog";
-import { EventCard } from "@/components/admin/event-card";
+import { DashboardAdmin } from "@/components/admin/dashboard-admin";
+import { MyEventsDashboard } from "@/components/admin/my-events";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
@@ -20,60 +19,12 @@ export default async function AdminDashboardPage() {
         .from("profiles")
         .select("is_admin")
         .eq("id", user.id)
-        .single()
+        .maybeSingle()
     : { data: null };
 
-  const { data: events } = await supabase
-    .from("events")
-    .select("*")
-    .eq("user_id", user?.id)
-    .order("created_at", { ascending: false });
-
-  const eventIds = (events ?? []).map((event) => event.id);
-  const { data: photos } = eventIds.length
-    ? await supabase
-        .from("photos")
-        .select("event_id, approved")
-        .in("event_id", eventIds)
-    : { data: [] };
-
-  const stats = new Map<string, { total: number; approved: number }>();
-  for (const photo of photos ?? []) {
-    const s = stats.get(photo.event_id) ?? { total: 0, approved: 0 };
-    s.total += 1;
-    if (photo.approved) s.approved += 1;
-    stats.set(photo.event_id, s);
+  if (profile?.is_admin) {
+    return <DashboardAdmin />;
   }
 
-  const origin =
-    process.env.VERCEL_PROJECT_PRODUCTION_URL
-      ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-      : process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
-
-  return (
-    <>
-      <AdminHeader
-        title="Meus eventos"
-        subtitle="Crie eventos, gerencie molduras e acompanhe as fotos."
-        isAdmin={profile?.is_admin ?? false}
-      />
-      <CreateEventDialog />
-      <div className="mt-6 space-y-4">
-        {events && events.length > 0 ? (
-          events.map((event) => (
-            <EventCard
-              key={event.id}
-              event={event}
-              stats={stats.get(event.id) ?? { total: 0, approved: 0 }}
-              origin={origin}
-            />
-          ))
-        ) : (
-          <div className="rounded-xl border border-dashed p-10 text-center text-sm text-muted-foreground">
-            Nenhum evento ainda. Crie o primeiro para gerar o QR code.
-          </div>
-        )}
-      </div>
-    </>
-  );
+  return <MyEventsDashboard />;
 }
