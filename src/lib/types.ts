@@ -40,6 +40,56 @@ export type Profile = {
   created_at: string;
 };
 
+export type ParticipantProfile = {
+  id: string;
+  event_id: string;
+  name: string;
+  reference_photo_url: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type DeviceIdentity = {
+  id: string;
+  event_id: string;
+  device_token_hash: string;
+  participant_profile_id: string | null;
+  last_seen_at: string;
+  created_at: string;
+};
+
+export type DetectedFace = {
+  id: string;
+  photo_id: string;
+  event_id: string;
+  face_index: number;
+  embedding: number[];
+  confidence: number;
+  source: string;
+  cluster_id: string | null;
+  manually_rejected: boolean;
+  created_at: string;
+};
+
+export type FaceCluster = {
+  id: string;
+  event_id: string;
+  label: string | null;
+  participant_profile_id: string | null;
+  status: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type SiteSettings = {
+  id: string;
+  email: string;
+  is_admin: boolean;
+  active: boolean;
+  created_at: string;
+};
+
 export type SiteSettings = {
   id: number;
   site_name: string;
