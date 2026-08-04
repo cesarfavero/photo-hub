@@ -180,15 +180,18 @@
   gap: 6px;
   min-width: 0;
   max-width: 280px;
+  overflow: hidden;
 }
 [data-sonner-toast].toaster-toast [data-title] {
   font-weight: 600;
+  min-width: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 [data-sonner-toast].toaster-toast [data-description] {
   color: var(--muted-foreground);
+  min-width: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

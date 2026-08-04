@@ -2,6 +2,22 @@ import Link from "next/link";
 import { ArrowRightIcon, CameraIcon, ImagesIcon, QrCodeIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  name: "Photo Hub",
+  applicationCategory: "PhotoApplication",
+  description:
+    "Cabine de fotos digital para eventos: QR code, moldura, foto e galeria ao vivo.",
+  operatingSystem: "Web",
+  inLanguage: "pt-BR",
+  offers: {
+    "@type": "Offer",
+    price: "0",
+    priceCurrency: "BRL",
+  },
+};
+
 const steps = [
   {
     icon: QrCodeIcon,
@@ -23,6 +39,10 @@ const steps = [
 export default function Home() {
   return (
     <main className="bg-glow flex flex-1 flex-col">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col items-center px-4 pb-24 pt-16 sm:px-6 sm:pt-24">
         <div className="animate-in fade-in-0 slide-in-from-bottom-4 duration-500 flex flex-col items-center text-center">
           <div className="animate-float-slow mb-8 flex h-20 w-20 items-center justify-center rounded-[1.75rem] bg-gradient-to-br from-primary to-primary/70 text-primary-foreground shadow-[0_16px_40px_-12px_oklch(0.25_0.03_55/0.45)]">

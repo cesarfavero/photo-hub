@@ -18,15 +18,64 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const siteUrl =
+  process.env.VERCEL_PROJECT_PRODUCTION_URL
+    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+    : process.env.NEXT_PUBLIC_SITE_URL ?? "https://photo-hub-alpha.vercel.app";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: {
     default: "Photo Hub · Cabine de fotos para eventos",
     template: "%s · Photo Hub",
   },
   description:
-    "Cabine de fotos digital para eventos: escaneie o QR code, escolha a moldura e publique sua foto na galeria.",
+    "Cabine de fotos digital para eventos: escaneie o QR code, escolha a moldura e publique sua foto na galeria ao vivo. Sem aplicativo, sem cadastro.",
+  applicationName: "Photo Hub",
+  keywords: [
+    "cabine de fotos",
+    "foto 360",
+    "photo booth",
+    "fotos para eventos",
+    "galeria ao vivo",
+    "QR code",
+    "cabine de fotos digital",
+    "molduras",
+  ],
+  authors: [{ name: "Photo Hub" }],
+  creator: "Photo Hub",
+  publisher: "Photo Hub",
+  alternates: {
+    canonical: "/",
+  },
   icons: {
-    icon: "/favicon.ico",
+    icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
+    apple: [{ url: "/apple-icon.png", sizes: "180x180", type: "image/png" }],
+  },
+  openGraph: {
+    type: "website",
+    locale: "pt_BR",
+    siteName: "Photo Hub",
+    title: "Photo Hub · Cabine de fotos para eventos",
+    description:
+      "QR code + moldura + foto + galeria ao vivo. Tudo funciona direto no celular dos convidados.",
+    url: siteUrl,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Photo Hub · Cabine de fotos para eventos",
+    description:
+      "QR code + moldura + foto + galeria ao vivo. Tudo funciona direto no celular dos convidados.",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
   },
 };
 

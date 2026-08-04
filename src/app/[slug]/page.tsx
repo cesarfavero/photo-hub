@@ -9,17 +9,49 @@ import { EventHeader } from "@/components/event-header";
 
 type PageProps = { params: Promise<{ slug: string }> };
 
+const siteUrl =
+  process.env.VERCEL_PROJECT_PRODUCTION_URL
+    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+    : process.env.NEXT_PUBLIC_SITE_URL ?? "https://photo-hub-alpha.vercel.app";
+
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
   const supabase = await createClient();
   const { data: event } = await supabase
     .from("events")
-    .select("name")
+    .select("name, description")
     .eq("slug", slug)
     .single();
 
+  if (!event) {
+    return { title: "Evento não encontrado" };
+  }
+
+  const description =
+    event.description ||
+    `Participe da cabine de fotos de ${event.name}: escolha a moldura, tire a foto e veja tudo na galeria ao vivo.`;
+
   return {
-    title: event ? `${event.name} · Photo Hub` : "Evento · Photo Hub",
+    title: event.name,
+    description,
+    alternates: { canonical: `/${slug}` },
+    openGraph: {
+      title: event.name,
+      description,
+      url: `${siteUrl}/${slug}`,
+      type: "website",
+      siteName: "Photo Hub",
+      locale: "pt_BR",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: event.name,
+      description,
+    },
+    robots: {
+      index: true,
+      follow: true,
+    },
   };
 }
 
