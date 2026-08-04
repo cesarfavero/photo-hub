@@ -2,7 +2,13 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { LoaderCircleIcon } from "lucide-react";
+import {
+  EyeIcon,
+  EyeOffIcon,
+  LoaderCircleIcon,
+  LockIcon,
+  MailIcon,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +19,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -76,35 +83,49 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
         <Label htmlFor="email">Email</Label>
-        <Input
-          id="email"
-          type="email"
-          autoComplete="email"
-          required
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="voce@exemplo.com"
-          className="h-11 text-base"
-        />
+        <div className="relative">
+          <MailIcon className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            id="email"
+            type="email"
+            autoComplete="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="voce@exemplo.com"
+            className="h-11 pl-9 text-base"
+          />
+        </div>
       </div>
       <div className="space-y-2">
         <Label htmlFor="password">Senha</Label>
-        <Input
-          id="password"
-          type="password"
-          autoComplete={mode === "login" ? "current-password" : "new-password"}
-          required
-          minLength={6}
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="••••••••"
-          className="h-11 text-base"
-        />
+        <div className="relative">
+          <LockIcon className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            id="password"
+            type={showPassword ? "text" : "password"}
+            autoComplete={mode === "login" ? "current-password" : "new-password"}
+            required
+            minLength={6}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="••••••••"
+            className="h-11 pr-10 pl-9 text-base"
+          />
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            className="absolute right-1.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:bg-transparent hover:text-foreground"
+            onClick={() => setShowPassword((v) => !v)}
+            aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+          >
+            {showPassword ? <EyeOffIcon className="size-4" /> : <EyeIcon className="size-4" />}
+          </Button>
+        </div>
       </div>
-      <Button type="submit" size="lg" className="w-full" disabled={loading}>
-        {loading ? (
-          <LoaderCircleIcon className="animate-spin" />
-        ) : null}
+      <Button type="submit" size="lg" className="w-full gap-2" disabled={loading}>
+        {loading ? <LoaderCircleIcon className="animate-spin" /> : null}
         {mode === "login" ? "Entrar" : "Criar conta"}
       </Button>
     </form>
