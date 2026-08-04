@@ -1,5 +1,6 @@
+import { createElement } from "react";
+import { getEventIcon } from "@/lib/event-icons";
 import type { Event } from "@/lib/types";
-import { DEFAULT_EVENT_ICON } from "@/lib/event-icons";
 
 export function EventHeader({ event }: { event: Event }) {
   return (
@@ -15,9 +16,10 @@ export function EventHeader({ event }: { event: Event }) {
         </div>
       ) : (
         <div className="mb-5 flex h-20 w-20 items-center justify-center rounded-3xl bg-card ring-1 ring-foreground/10 shadow-sm">
-          <span className="text-4xl leading-none">
-            {event.icon || DEFAULT_EVENT_ICON}
-          </span>
+          {createElement(getEventIcon(event.icon), {
+            className: "size-9 text-primary",
+            strokeWidth: 1.75,
+          })}
         </div>
       )}
       <h1 className="text-2xl font-semibold tracking-tight text-balance sm:text-3xl">

@@ -8,28 +8,28 @@ export function IconPicker({
   onChange,
 }: {
   value: string;
-  onChange: (emoji: string) => void;
+  onChange: (key: string) => void;
 }) {
   return (
-    <div className="grid grid-cols-6 gap-1.5 sm:grid-cols-8">
-      {EVENT_ICONS.map((icon) => {
-        const selected = value === icon.emoji;
+    <div className="grid grid-cols-6 gap-1.5 sm:grid-cols-10">
+      {EVENT_ICONS.map((option) => {
+        const selected = value === option.key;
         return (
           <button
-            key={icon.emoji}
+            key={option.key}
             type="button"
-            onClick={() => onChange(icon.emoji)}
-            title={icon.label}
-            aria-label={`Ícone ${icon.label}`}
+            onClick={() => onChange(option.key)}
+            title={option.label}
+            aria-label={`Ícone ${option.label}`}
             aria-pressed={selected}
             className={cn(
-              "flex aspect-square items-center justify-center rounded-lg text-xl transition-all duration-150 hover:bg-muted active:scale-90",
+              "flex aspect-square items-center justify-center rounded-lg text-muted-foreground transition-all duration-150 hover:bg-muted hover:text-foreground active:scale-90",
               selected
-                ? "bg-primary/10 ring-2 ring-primary"
+                ? "bg-primary/10 text-primary ring-2 ring-primary"
                 : "ring-1 ring-transparent",
             )}
           >
-            {icon.emoji}
+            <option.icon className="size-5" strokeWidth={1.75} />
           </button>
         );
       })}

@@ -2,14 +2,14 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { LoaderCircleIcon, PaletteIcon, SaveIcon } from "lucide-react";
+import { LoaderCircleIcon, SaveIcon } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { createClient } from "@/lib/supabase/client";
-import { THEME_COLORS } from "@/lib/theme";
+import { THEME_COLORS, themeVars } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 import { IconPicker } from "@/components/admin/icon-picker";
 import type { Event } from "@/lib/types";
@@ -22,6 +22,11 @@ function slugify(text: string) {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)+/g, "")
     .slice(0, 50);
+}
+
+function toHex(value: string) {
+  const digits = value.replace(/[^0-9a-fA-F]/g, "").slice(0, 6);
+  return digits ? `#${digits}` : "";
 }
 
 export function EventSettings({ event }: { event: Event }) {
@@ -116,58 +121,36 @@ export function EventSettings({ event }: { event: Event }) {
           <p className="text-xs text-muted-foreground">
             Escolha a cor dos botões e destaques na página do evento.
           </p>
-          <div className="flex flex-wrap items-center gap-2.5">
-            {THEME_COLORS.map((preset) => {
-              const selected =
-                themeColor.toLowerCase() === preset.color.toLowerCase();
-              return (
-                <button
-                  key={preset.color}
-                  type="button"
-                  onClick={() => setThemeColor(preset.color)}
-                  aria-label={`Cor ${preset.name}`}
-                  title={preset.name}
-                  className={cn(
-                    "size-8 rounded-full ring-2 ring-offset-2 ring-offset-background transition-transform duration-150 hover:scale-110 active:scale-95",
-                    selected
-                      ? "ring-foreground"
-                      : "ring-transparent hover:ring-foreground/30",
-                  )}
-                  style={{ backgroundColor: preset.color }}
-                />
-              );
-            })}
-            <label
-              className="relative flex size-8 cursor-pointer items-center justify-center rounded-full border-2 border-dashed border-foreground/25 text-foreground/60 transition-colors hover:border-foreground/40 hover:text-foreground"
-              title="Escolher cor"
-            >
-              <PaletteIcon className="size-4" />
-              <input
-                type="color"
-                value={
-                  /^#[0-9a-fA-F]{6}$/.test(themeColor)
-                    ? themeColor
-                    : "#171717"
-                }
-                onChange={(e) => setThemeColor(e.target.value)}
-                className="absolute inset-0 size-full cursor-pointer opacity-0"
-                aria-label="Escolher cor personalizada"
-              />
-            </label>
-            <div className="flex items-center gap-2">
+          <div className="space-y-3">
+            <div className="flex flex-wrap items-center gap-2.5">
+              {THEME_COLORS.map((preset) => {
+                const selected =
+                  themeColor.toLowerCase() === preset.color.toLowerCase();
+                return (
+                  <button
+                    key={preset.color}
+                    type="button"
+                    onClick={() => setThemeColor(preset.color)}
+                    aria-label={`Cor ${preset.name}`}
+                    title={preset.name}
+                    className={cn(
+                      "size-8 rounded-full ring-2 ring-offset-2 ring-offset-background transition-transform duration-150 hover:scale-110 active:scale-95",
+                      selected
+                        ? "ring-foreground"
+                        : "ring-transparent hover:ring-foreground/30",
+                    )}
+                    style={{ backgroundColor: preset.color }}
+                  />
+                );
+              })}
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
               <div className="relative">
                 <Input
                   value={themeColor}
-                  onChange={(e) =>
-                    setThemeColor(
-                      e.target.value
-                        .replace(/[^0-9a-fA-F#]/g, "")
-                        .slice(0, 7),
-                    )
-                  }
+                  onChange={(e) => setThemeColor(toHex(e.target.value))}
                   placeholder="#2563eb"
-                  className="h-10 w-32 pl-9 font-mono text-sm"
-                  maxLength={7}
+                  className="h-10 w-36 pl-9 font-mono text-sm"
                   aria-label="Código hex da cor"
                 />
                 <span
@@ -178,6 +161,11 @@ export function EventSettings({ event }: { event: Event }) {
                       : "#ffffff",
                   }}
                 />
+              </div>
+              <div style={themeVars(themeColor)}>
+                <span className="inline-flex h-10 items-center rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground">
+                  Preview
+                </span>
               </div>
             </div>
           </div>

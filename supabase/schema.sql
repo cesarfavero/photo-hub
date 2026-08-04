@@ -15,7 +15,7 @@ create table if not exists public.events (
   cover_url text default '',
   active boolean not null default true,
   theme_color text not null default '#171717',
-  icon text not null default '🎉',
+  icon text not null default 'party',
   created_at timestamptz not null default now()
 );
 
