@@ -40,7 +40,9 @@ export function FrameManager({
 
   const upload = async (file: File) => {
     if (!file.type.startsWith("image/")) {
-      toast.error("O arquivo precisa ser uma imagem.");
+      toast.error("Arquivo inválido", {
+        description: "Envie uma imagem PNG com o centro transparente.",
+      });
       return;
     }
     setUploading(true);
@@ -52,7 +54,9 @@ export function FrameManager({
       .from("frames")
       .upload(path, file, { contentType: file.type });
     if (upError) {
-      toast.error("Erro ao enviar a moldura.");
+      toast.error("Falha no envio", {
+        description: "Não conseguimos enviar a moldura. Tente novamente.",
+      });
       setUploading(false);
       return;
     }
@@ -68,10 +72,14 @@ export function FrameManager({
     });
     setUploading(false);
     if (insertError) {
-      toast.error("Erro ao salvar a moldura.");
+      toast.error("Não foi possível salvar", {
+        description: "Tente novamente em alguns instantes.",
+      });
       return;
     }
-    toast.success("Moldura adicionada!");
+    toast.success("Moldura adicionada!", {
+      description: "Ela já aparece para os convidados.",
+    });
     setName("");
     router.refresh();
   };
@@ -80,10 +88,12 @@ export function FrameManager({
     const supabase = createClient();
     const { error } = await supabase.from("frames").delete().eq("id", id);
     if (error) {
-      toast.error("Erro ao excluir a moldura.");
+      toast.error("Não foi possível excluir", {
+        description: "Tente novamente em alguns instantes.",
+      });
       return;
     }
-    toast.success("Moldura excluída.");
+    toast.success("Moldura excluída");
     router.refresh();
   };
 

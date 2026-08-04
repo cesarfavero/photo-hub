@@ -40,10 +40,17 @@ export function PhotoManager({ photos }: { photos: Photo[] }) {
       .update({ approved: !photo.approved })
       .eq("id", photo.id);
     if (error) {
-      toast.error("Erro ao atualizar.");
+      toast.error("Não foi possível atualizar", {
+        description: "Tente novamente em alguns instantes.",
+      });
       return;
     }
-    toast.success(photo.approved ? "Foto desaprovada." : "Foto aprovada!");
+    toast.success(
+      photo.approved ? "Foto ocultada" : "Foto aprovada!",
+      photo.approved
+        ? { description: "Ela foi removida da galeria pública." }
+        : { description: "Ela já aparece na galeria para todos." },
+    );
     router.refresh();
   };
 
@@ -57,10 +64,12 @@ export function PhotoManager({ photos }: { photos: Photo[] }) {
       .delete()
       .eq("id", photo.id);
     if (error || dbError) {
-      toast.error("Erro ao excluir a foto.");
+      toast.error("Não foi possível excluir", {
+        description: "Tente novamente em alguns instantes.",
+      });
       return;
     }
-    toast.success("Foto excluída.");
+    toast.success("Foto excluída");
     router.refresh();
   };
 

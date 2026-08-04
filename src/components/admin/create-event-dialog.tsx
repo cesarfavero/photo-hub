@@ -46,7 +46,9 @@ export function CreateEventDialog() {
 
   const create = async () => {
     if (!name.trim() || !slug.trim()) {
-      toast.error("Preencha o nome e o link do evento.");
+      toast.error("Informações incompletas", {
+        description: "Preencha o nome e o link do evento.",
+      });
       return;
     }
     setLoading(true);
@@ -59,13 +61,19 @@ export function CreateEventDialog() {
     setLoading(false);
     if (error) {
       if (error.code === "23505") {
-        toast.error("Esse link já existe. Escolha outro.");
+        toast.error("Link já em uso", {
+          description: "Escolha outro link para o evento.",
+        });
       } else {
-        toast.error("Erro ao criar o evento.");
+        toast.error("Não foi possível criar o evento", {
+          description: "Tente novamente em alguns instantes.",
+        });
       }
       return;
     }
-    toast.success("Evento criado!");
+    toast.success("Evento criado!", {
+      description: "Agora é só adicionar as molduras e imprimir o QR code.",
+    });
     setOpen(false);
     setName("");
     setDescription("");

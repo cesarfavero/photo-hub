@@ -46,7 +46,9 @@ export function EventCard({
 
   const copyLink = async () => {
     await navigator.clipboard.writeText(eventUrl);
-    toast.success("Link copiado!");
+    toast.success("Link copiado!", {
+      description: "Cole no QR code ou compartilhe com os convidados.",
+    });
   };
 
   const toggleActive = async () => {
@@ -56,9 +58,12 @@ export function EventCard({
       .update({ active: !event.active })
       .eq("id", event.id);
     if (error) {
-      toast.error("Erro ao atualizar.");
+      toast.error("Não foi possível atualizar", {
+        description: "Tente novamente em alguns instantes.",
+      });
       return;
     }
+    toast.success(event.active ? "Evento desativado" : "Evento ativado");
     router.refresh();
   };
 
@@ -66,10 +71,14 @@ export function EventCard({
     const supabase = createClient();
     const { error } = await supabase.from("events").delete().eq("id", event.id);
     if (error) {
-      toast.error("Erro ao excluir.");
+      toast.error("Não foi possível excluir", {
+        description: "Tente novamente em alguns instantes.",
+      });
       return;
     }
-    toast.success("Evento excluído.");
+    toast.success("Evento excluído", {
+      description: "As fotos e molduras foram removidas.",
+    });
     router.refresh();
   };
 
@@ -112,13 +121,13 @@ export function EventCard({
           <Button size="sm" onClick={copyLink}>
             <CopyIcon /> Copiar link
           </Button>
-          <Button variant="outline" size="sm" render={<Link href={eventUrl} target="_blank" />}>
+          <Button variant="outline" size="sm" nativeButton={false} render={<Link href={eventUrl} target="_blank" />}>
             <ExternalLinkIcon /> Abrir
           </Button>
           <Button variant="outline" size="sm" onClick={toggleActive}>
             {event.active ? "Desativar" : "Ativar"}
           </Button>
-          <Button variant="outline" size="sm" render={<Link href={`/admin/events/${event.id}`} />}>
+          <Button variant="outline" size="sm" nativeButton={false} render={<Link href={`/admin/events/${event.id}`} />}>
             <Settings2Icon /> Gerenciar
           </Button>
           <AlertDialog>

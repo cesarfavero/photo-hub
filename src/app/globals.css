@@ -191,3 +191,17 @@
 .animate-float-slow {
   animation: float-slow 7s ease-in-out infinite;
 }
+
+[data-sonner-toast].toaster-toast {
+  border: 1px solid var(--border);
+  box-shadow:
+    0 1px 2px oklch(0 0 0 / 0.04),
+    0 8px 24px -8px oklch(0 0 0 / 0.14);
+  font-family: var(--font-sans);
+}
+[data-sonner-toast][data-styled="true"] {
+  border-radius: 0.75rem;
+}
+[data-sonner-toast] [data-close-button] {
+  border-radius: 0.5rem;
+}

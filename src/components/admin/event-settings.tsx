@@ -30,7 +30,9 @@ export function EventSettings({ event }: { event: Event }) {
 
   const save = async () => {
     if (!name.trim() || !slug.trim()) {
-      toast.error("Nome e link são obrigatórios.");
+      toast.error("Informações incompletas", {
+        description: "Nome e link são obrigatórios.",
+      });
       return;
     }
     setSaving(true);
@@ -46,13 +48,19 @@ export function EventSettings({ event }: { event: Event }) {
     setSaving(false);
     if (error) {
       if (error.code === "23505") {
-        toast.error("Esse link já existe. Escolha outro.");
+        toast.error("Link já em uso", {
+          description: "Escolha outro link para o evento.",
+        });
       } else {
-        toast.error("Erro ao salvar.");
+        toast.error("Não foi possível salvar", {
+          description: "Tente novamente em alguns instantes.",
+        });
       }
       return;
     }
-    toast.success("Evento atualizado!");
+    toast.success("Evento atualizado!", {
+      description: "As alterações já estão no ar.",
+    });
     router.refresh();
   };
 

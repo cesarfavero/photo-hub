@@ -36,7 +36,12 @@ export default function Home() {
             celular dos convidados — sem aplicativo, sem cadastro.
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <Button size="lg" className="gap-2 rounded-full px-7" render={<Link href="/admin" />}>
+            <Button
+              size="lg"
+              nativeButton={false}
+              className="gap-2 rounded-full px-7"
+              render={<Link href="/admin" />}
+            >
               Criar meu evento
               <ArrowRightIcon className="size-4" />
             </Button>

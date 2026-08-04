@@ -26,11 +26,18 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
         password,
       });
       if (error) {
-        toast.error("Email ou senha incorretos.");
+        toast.error("Não foi possível entrar", {
+          description:
+            error.code === "email_not_confirmed"
+              ? "Confirme seu email antes de entrar."
+              : "Email ou senha incorretos.",
+        });
         setLoading(false);
         return;
       }
-      toast.success("Login realizado!");
+      toast.success("Login realizado!", {
+        description: "Bem-vindo de volta ao painel.",
+      });
       router.push("/admin");
       router.refresh();
       return;
@@ -44,19 +51,24 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
       },
     });
     if (error) {
-      toast.error(error.message);
+      toast.error("Não foi possível criar a conta", {
+        description: error.message,
+      });
       setLoading(false);
       return;
     }
     if (data.session) {
-      toast.success("Conta criada!");
+      toast.success("Conta criada!", {
+        description: "Seu painel está pronto para uso.",
+      });
       router.push("/admin");
       router.refresh();
       return;
     }
-    toast.success(
-      "Conta criada! Confirme seu email para continuar.",
-    );
+    toast.success("Quase lá!", {
+      description:
+        "Conta criada. Confirme seu email para começar a usar o painel.",
+    });
     setLoading(false);
   };
 

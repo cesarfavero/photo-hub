@@ -169,7 +169,9 @@ export function PhotoBooth({
         });
         drawCover(ctx, img, img.width, img.height, PHOTO_WIDTH, PHOTO_HEIGHT);
       } catch {
-        toast.error("Erro ao carregar a moldura. Tente novamente.");
+        toast.error("Não foi possível carregar a moldura", {
+          description: "Tente novamente ou escolha outra moldura.",
+        });
         return;
       }
     }
@@ -197,7 +199,9 @@ export function PhotoBooth({
       .from("photos")
       .upload(path, blob, { contentType: "image/jpeg", upsert: false });
     if (uploadError) {
-      toast.error("Erro ao enviar a foto. Tente novamente.");
+      toast.error("Falha no envio", {
+        description: "Não conseguimos enviar a foto. Tente novamente.",
+      });
       setUploading(false);
       return;
     }
@@ -214,11 +218,16 @@ export function PhotoBooth({
       author_name: authorName.trim() || null,
     });
     if (insertError) {
-      toast.error("Erro ao publicar a foto. Tente novamente.");
+      toast.error("Falha ao publicar", {
+        description: "Não conseguimos salvar sua foto na galeria. Tente novamente.",
+      });
       setUploading(false);
       return;
     }
 
+    toast.success("Foto publicada!", {
+      description: "Ela já aparece na galeria do evento.",
+    });
     setUploading(false);
     setStep("success");
   };
