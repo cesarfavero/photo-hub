@@ -32,6 +32,20 @@ export type Photo = {
   created_at: string;
 };
 
+export type Profile = {
+  id: string;
+  email: string;
+  is_admin: boolean;
+  active: boolean;
+  created_at: string;
+};
+
+export type SiteSettings = {
+  id: number;
+  site_name: string;
+  updated_at: string;
+};
+
 export const PHOTO_ASPECT_RATIO = 3 / 4;
 export const PHOTO_WIDTH = 1080;
 export const PHOTO_HEIGHT = 1440;

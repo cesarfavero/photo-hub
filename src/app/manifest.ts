@@ -1,9 +1,12 @@
 import type { MetadataRoute } from "next";
+import { getSiteName } from "@/lib/site";
 
-export default function manifest(): MetadataRoute.Manifest {
+export default async function manifest(): Promise<MetadataRoute.Manifest> {
+  const siteName = await getSiteName();
+
   return {
-    name: "Photo Hub · Cabine de fotos para eventos",
-    short_name: "Photo Hub",
+    name: `${siteName} · Cabine de fotos para eventos`,
+    short_name: siteName,
     description:
       "Cabine de fotos digital para eventos: QR code, moldura e galeria ao vivo.",
     start_url: "/",

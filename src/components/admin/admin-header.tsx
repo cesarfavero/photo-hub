@@ -1,10 +1,22 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeftIcon, LogOutIcon, UsersIcon } from "lucide-react";
+import {
+  ArrowLeftIcon,
+  BarChart3Icon,
+  LogOutIcon,
+  SettingsIcon,
+  UsersIcon,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
+
+const adminLinks = [
+  { href: "/admin/metricas", label: "Métricas", icon: BarChart3Icon },
+  { href: "/admin/clientes", label: "Clientes", icon: UsersIcon },
+  { href: "/admin/configuracoes", label: "Configurações", icon: SettingsIcon },
+];
 
 export function AdminHeader({
   title,
@@ -18,6 +30,7 @@ export function AdminHeader({
   isAdmin?: boolean;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
 
   const logout = async () => {
     const supabase = createClient();
@@ -27,41 +40,50 @@ export function AdminHeader({
   };
 
   return (
-    <header className="mb-6 flex items-start justify-between gap-4">
-      <div className="flex items-start gap-3">
-        {backHref ? (
-          <Link
-            href={backHref}
-            aria-label="Voltar"
-            className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground active:scale-95"
-          >
-            <ArrowLeftIcon className="size-5" />
-          </Link>
-        ) : null}
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
-          {subtitle ? (
-            <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
+    <header className="mb-6 space-y-4">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex items-start gap-3">
+          {backHref ? (
+            <Link
+              href={backHref}
+              aria-label="Voltar"
+              className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground active:scale-95"
+            >
+              <ArrowLeftIcon className="size-5" />
+            </Link>
           ) : null}
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
+            {subtitle ? (
+              <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
+            ) : null}
+          </div>
         </div>
-      </div>
-      <div className="flex items-center gap-2">
-        {isAdmin ? (
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-1.5"
-            nativeButton={false}
-            render={<Link href="/admin/clientes" />}
-          >
-            <UsersIcon className="size-4" />
-            Clientes
-          </Button>
-        ) : null}
         <Button variant="outline" size="icon" onClick={logout} aria-label="Sair">
           <LogOutIcon />
         </Button>
       </div>
+
+      {isAdmin ? (
+        <nav className="flex flex-wrap gap-1.5">
+          {adminLinks.map((link) => {
+            const active = pathname === link.href;
+            return (
+              <Button
+                key={link.href}
+                variant={active ? "secondary" : "ghost"}
+                size="sm"
+                className="gap-1.5"
+                nativeButton={false}
+                render={<Link href={link.href} />}
+              >
+                <link.icon className="size-4" />
+                {link.label}
+              </Button>
+            );
+          })}
+        </nav>
+      ) : null}
     </header>
   );
 }
