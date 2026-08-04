@@ -1,5 +1,5 @@
-import { SparklesIcon } from "lucide-react";
 import type { Event } from "@/lib/types";
+import { DEFAULT_EVENT_ICON } from "@/lib/event-icons";
 
 export function EventHeader({ event }: { event: Event }) {
   return (
@@ -14,8 +14,10 @@ export function EventHeader({ event }: { event: Event }) {
           />
         </div>
       ) : (
-        <div className="mb-5 flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-primary to-primary/70 text-primary-foreground shadow-[0_14px_32px_-14px_oklch(0.25_0.03_55/0.5)]">
-          <SparklesIcon className="size-8" strokeWidth={1.75} />
+        <div className="mb-5 flex h-20 w-20 items-center justify-center rounded-3xl bg-card ring-1 ring-foreground/10 shadow-sm">
+          <span className="text-4xl leading-none">
+            {event.icon || DEFAULT_EVENT_ICON}
+          </span>
         </div>
       )}
       <h1 className="text-2xl font-semibold tracking-tight text-balance sm:text-3xl">

@@ -19,6 +19,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { createClient } from "@/lib/supabase/client";
+import { DEFAULT_EVENT_ICON } from "@/lib/event-icons";
+import { IconPicker } from "@/components/admin/icon-picker";
 
 function slugify(text: string) {
   return text
@@ -37,6 +39,7 @@ export function CreateEventDialog() {
   const [description, setDescription] = useState("");
   const [slug, setSlug] = useState("");
   const [slugTouched, setSlugTouched] = useState(false);
+  const [icon, setIcon] = useState(DEFAULT_EVENT_ICON);
   const [loading, setLoading] = useState(false);
 
   const handleNameChange = (value: string) => {
@@ -57,6 +60,7 @@ export function CreateEventDialog() {
       name: name.trim(),
       description: description.trim(),
       slug: slug.trim().toLowerCase(),
+      icon,
     });
     setLoading(false);
     if (error) {
@@ -114,6 +118,10 @@ export function CreateEventDialog() {
               placeholder="Ex.: Tire sua foto na cabine e publique na galeria!"
               rows={2}
             />
+          </div>
+          <div className="space-y-2">
+            <Label>Ícone do evento</Label>
+            <IconPicker value={icon} onChange={setIcon} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="event-slug">Link do evento</Label>

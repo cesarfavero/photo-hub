@@ -6,6 +6,7 @@ export type Event = {
   cover_url: string;
   active: boolean;
   theme_color: string;
+  icon: string;
   created_at: string;
 };
 

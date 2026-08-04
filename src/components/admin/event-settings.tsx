@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { createClient } from "@/lib/supabase/client";
 import { THEME_COLORS } from "@/lib/theme";
 import { cn } from "@/lib/utils";
+import { IconPicker } from "@/components/admin/icon-picker";
 import type { Event } from "@/lib/types";
 
 function slugify(text: string) {
@@ -28,6 +29,7 @@ export function EventSettings({ event }: { event: Event }) {
   const [name, setName] = useState(event.name);
   const [description, setDescription] = useState(event.description);
   const [slug, setSlug] = useState(event.slug);
+  const [icon, setIcon] = useState(event.icon);
   const [themeColor, setThemeColor] = useState(event.theme_color);
   const [saving, setSaving] = useState(false);
 
@@ -46,7 +48,10 @@ export function EventSettings({ event }: { event: Event }) {
         name: name.trim(),
         description: description.trim(),
         slug: slug.trim().toLowerCase(),
-        theme_color: themeColor,
+        icon,
+        theme_color: /^#[0-9a-fA-F]{6}$/.test(themeColor)
+          ? themeColor
+          : "#171717",
       })
       .eq("id", event.id);
     setSaving(false);
@@ -100,6 +105,13 @@ export function EventSettings({ event }: { event: Event }) {
           />
         </div>
         <div className="space-y-2 sm:col-span-2">
+          <Label>Ícone do evento</Label>
+          <p className="text-xs text-muted-foreground">
+            Aparece no topo da página do evento.
+          </p>
+          <IconPicker value={icon} onChange={setIcon} />
+        </div>
+        <div className="space-y-2 sm:col-span-2">
           <Label>Tema do evento</Label>
           <p className="text-xs text-muted-foreground">
             Escolha a cor dos botões e destaques na página do evento.
@@ -127,17 +139,13 @@ export function EventSettings({ event }: { event: Event }) {
             })}
             <label
               className="relative flex size-8 cursor-pointer items-center justify-center rounded-full border-2 border-dashed border-foreground/25 text-foreground/60 transition-colors hover:border-foreground/40 hover:text-foreground"
-              title="Cor personalizada"
+              title="Escolher cor"
             >
               <PaletteIcon className="size-4" />
               <input
                 type="color"
                 value={
-                  THEME_COLORS.some(
-                    (p) =>
-                      p.color.toLowerCase() ===
-                      themeColor.toLowerCase(),
-                  )
+                  /^#[0-9a-fA-F]{6}$/.test(themeColor)
                     ? themeColor
                     : "#171717"
                 }
@@ -146,6 +154,32 @@ export function EventSettings({ event }: { event: Event }) {
                 aria-label="Escolher cor personalizada"
               />
             </label>
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <Input
+                  value={themeColor}
+                  onChange={(e) =>
+                    setThemeColor(
+                      e.target.value
+                        .replace(/[^0-9a-fA-F#]/g, "")
+                        .slice(0, 7),
+                    )
+                  }
+                  placeholder="#2563eb"
+                  className="h-10 w-32 pl-9 font-mono text-sm"
+                  maxLength={7}
+                  aria-label="Código hex da cor"
+                />
+                <span
+                  className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 rounded-full ring-1 ring-foreground/15"
+                  style={{
+                    backgroundColor: /^#[0-9a-fA-F]{6}$/.test(themeColor)
+                      ? themeColor
+                      : "#ffffff",
+                  }}
+                />
+              </div>
+            </div>
           </div>
         </div>
       </div>
