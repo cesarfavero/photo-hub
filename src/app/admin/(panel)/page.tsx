@@ -15,6 +15,14 @@ export default async function AdminDashboardPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
+  const { data: profile } = user
+    ? await supabase
+        .from("profiles")
+        .select("is_admin")
+        .eq("id", user.id)
+        .single()
+    : { data: null };
+
   const { data: events } = await supabase
     .from("events")
     .select("*")
@@ -47,6 +55,7 @@ export default async function AdminDashboardPage() {
       <AdminHeader
         title="Meus eventos"
         subtitle="Crie eventos, gerencie molduras e acompanhe as fotos."
+        isAdmin={profile?.is_admin ?? false}
       />
       <CreateEventDialog />
       <div className="mt-6 space-y-4">

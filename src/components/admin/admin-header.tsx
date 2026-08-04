@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeftIcon, LogOutIcon } from "lucide-react";
+import { ArrowLeftIcon, LogOutIcon, UsersIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 
@@ -10,10 +10,12 @@ export function AdminHeader({
   title,
   subtitle,
   backHref,
+  isAdmin = false,
 }: {
   title: string;
   subtitle?: string;
   backHref?: string;
+  isAdmin?: boolean;
 }) {
   const router = useRouter();
 
@@ -43,9 +45,23 @@ export function AdminHeader({
           ) : null}
         </div>
       </div>
-      <Button variant="outline" size="icon" onClick={logout} aria-label="Sair">
-        <LogOutIcon />
-      </Button>
+      <div className="flex items-center gap-2">
+        {isAdmin ? (
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+            nativeButton={false}
+            render={<Link href="/admin/clientes" />}
+          >
+            <UsersIcon className="size-4" />
+            Clientes
+          </Button>
+        ) : null}
+        <Button variant="outline" size="icon" onClick={logout} aria-label="Sair">
+          <LogOutIcon />
+        </Button>
+      </div>
     </header>
   );
 }
