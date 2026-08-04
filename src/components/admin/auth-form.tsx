@@ -122,34 +122,20 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1">
         <Button
           type="button"
           variant="outline"
           className="h-11 gap-2"
-          disabled={oauthLoading !== null}
-          onClick={() => void oauth("google")}
+          disabled={googleLoading}
+          onClick={() => void oauthGoogle()}
         >
-          {oauthLoading === "google" ? (
+          {googleLoading ? (
             <LoaderCircleIcon className="size-4 animate-spin" />
           ) : (
             <GoogleIcon />
           )}
-          Google
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          className="h-11 gap-2"
-          disabled={oauthLoading !== null}
-          onClick={() => void oauth("apple")}
-        >
-          {oauthLoading === "apple" ? (
-            <LoaderCircleIcon className="size-4 animate-spin" />
-          ) : (
-            <AppleIcon />
-          )}
-          Apple
+          Entrar com Google
         </Button>
       </div>
 
