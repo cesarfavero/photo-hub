@@ -117,21 +117,16 @@ export function CreateEventDialog() {
           </div>
           <div className="space-y-2">
             <Label htmlFor="event-slug">Link do evento</Label>
-            <div className="flex items-center gap-1 rounded-lg border bg-muted/50 px-3">
-              <span className="text-sm text-muted-foreground">
-                seu-site.com/
-              </span>
-              <Input
-                id="event-slug"
-                value={slug}
-                onChange={(e) => {
-                  setSlugTouched(true);
-                  setSlug(slugify(e.target.value));
-                }}
-                placeholder="festa-maria"
-                className="h-11 border-0 bg-transparent pl-0 focus-visible:ring-0"
-              />
-            </div>
+            <Input
+              id="event-slug"
+              value={slug}
+              onChange={(e) => {
+                setSlugTouched(true);
+                setSlug(slugify(e.target.value));
+              }}
+              placeholder="festa-maria"
+              className="h-11"
+            />
             <p className="text-xs text-muted-foreground">
               O QR code levará os convidados para esse link.
             </p>

@@ -2,15 +2,17 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
+  ArrowLeftIcon,
   CameraIcon,
   CheckIcon,
-  ChevronLeftIcon,
   FlipHorizontalIcon,
   ImageIcon,
   PartyPopperIcon,
   RefreshCwIcon,
+  SwitchCameraIcon,
   UploadIcon,
   UserRoundIcon,
+  XIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -64,6 +66,7 @@ export function PhotoBooth({
     frames[0]?.id ?? null,
   );
   const [facingMode, setFacingMode] = useState<FacingMode>("user");
+  const [mirrored, setMirrored] = useState(true);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [capturedUrl, setCapturedUrl] = useState<string | null>(null);
   const [authorName, setAuthorName] = useState("");
@@ -129,10 +132,17 @@ export function PhotoBooth({
     return cleanup;
   }, [step, facingMode]);
 
+  useEffect(() => {
+    if (step !== "camera") return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, [step]);
+
   const switchCamera = () => {
-    setFacingMode((prev) =>
-      prev === "user" ? "environment" : "user",
-    );
+    setFacingMode((prev) => (prev === "user" ? "environment" : "user"));
   };
 
   const capture = async () => {
@@ -156,7 +166,7 @@ export function PhotoBooth({
       video.videoHeight,
       PHOTO_WIDTH,
       PHOTO_HEIGHT,
-      facingMode === "user",
+      mirrored,
     );
 
     if (selectedFrame) {
@@ -219,7 +229,8 @@ export function PhotoBooth({
     });
     if (insertError) {
       toast.error("Falha ao publicar", {
-        description: "Não conseguimos salvar sua foto na galeria. Tente novamente.",
+        description:
+          "Não conseguimos salvar sua foto na galeria. Tente novamente.",
       });
       setUploading(false);
       return;
@@ -244,6 +255,22 @@ export function PhotoBooth({
       ?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
+  if (step === "camera") {
+    return (
+      <FullscreenCamera
+        videoRef={videoRef}
+        mirrored={mirrored}
+        cameraError={cameraError}
+        flash={flash}
+        selectedFrame={selectedFrame}
+        onMirror={() => setMirrored((v) => !v)}
+        onFlip={switchCamera}
+        onClose={() => setStep("frame")}
+        onCapture={capture}
+      />
+    );
+  }
+
   return (
     <section id="cabine" className="rounded-2xl border bg-card shadow-sm">
       <div className="p-4 sm:p-6">
@@ -262,73 +289,6 @@ export function PhotoBooth({
             />
           )}
 
-          {step === "camera" && (
-            <div className="flex flex-col items-center">
-              <div className="relative w-full max-w-[380px] overflow-hidden rounded-xl bg-black aspect-[3/4] ring-1 ring-foreground/10">
-                <video
-                  ref={videoRef}
-                  autoPlay
-                  playsInline
-                  muted
-                  className={cn(
-                    "absolute inset-0 h-full w-full object-cover",
-                    facingMode === "user" && "-scale-x-100",
-                  )}
-                />
-                {selectedFrame ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={selectedFrame.image_url}
-                    alt=""
-                    className="pointer-events-none absolute inset-0 h-full w-full object-cover"
-                  />
-                ) : null}
-                {flash ? (
-                  <div className="animate-flash pointer-events-none absolute inset-0 z-10 bg-white" />
-                ) : null}
-                {cameraError ? (
-                  <div className="absolute inset-0 flex items-center justify-center bg-black p-6 text-center text-sm text-white">
-                    {cameraError}
-                  </div>
-                ) : null}
-              </div>
-
-              <div className="mt-6 flex w-full max-w-[380px] items-center justify-between px-6">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setStep("frame")}
-                  aria-label="Voltar"
-                >
-                  <ChevronLeftIcon />
-                </Button>
-                <div className="relative">
-                  <span className="absolute inset-0 -m-2 rounded-full border-2 border-primary/15 transition-transform duration-200 group-active:scale-90" />
-                  <Button
-                    size="icon"
-                    className="size-16 rounded-full shadow-lg transition-transform duration-150 active:scale-95"
-                    onClick={capture}
-                    aria-label="Tirar foto"
-                    disabled={!!cameraError}
-                  >
-                    <CameraIcon className="size-8" />
-                  </Button>
-                </div>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={switchCamera}
-                  aria-label="Trocar câmera"
-                >
-                  <FlipHorizontalIcon />
-                </Button>
-              </div>
-              <p className="mt-4 text-xs text-muted-foreground">
-                Enquadre-se na moldura e toque no botão.
-              </p>
-            </div>
-          )}
-
           {step === "captured" && capturedUrl && (
             <div className="flex flex-col items-center">
               <div className="relative w-full max-w-[380px] overflow-hidden rounded-xl bg-black aspect-[3/4] ring-1 ring-foreground/10">
@@ -342,7 +302,10 @@ export function PhotoBooth({
 
               <div className="mt-6 w-full max-w-[380px] space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="author-name" className="flex items-center gap-2">
+                  <Label
+                    htmlFor="author-name"
+                    className="flex items-center gap-2"
+                  >
                     <UserRoundIcon className="size-4" /> Seu nome (opcional)
                   </Label>
                   <Input
@@ -357,13 +320,20 @@ export function PhotoBooth({
                 <div className="flex gap-3">
                   <Button
                     variant="outline"
-                    onClick={reset}
+                    onClick={() => {
+                      setCapturedUrl(null);
+                      setStep("camera");
+                    }}
                     className="flex-1"
                     disabled={uploading}
                   >
-                    <RefreshCwIcon /> Refazer
+                    <ArrowLeftIcon /> Refazer
                   </Button>
-                  <Button onClick={upload} className="flex-1" disabled={uploading}>
+                  <Button
+                    onClick={upload}
+                    className="flex-1"
+                    disabled={uploading}
+                  >
                     {uploading ? (
                       <RefreshCwIcon className="animate-spin" />
                     ) : (
@@ -401,6 +371,135 @@ export function PhotoBooth({
         </div>
       </div>
     </section>
+  );
+}
+
+function FullscreenCamera({
+  videoRef,
+  mirrored,
+  cameraError,
+  flash,
+  selectedFrame,
+  onMirror,
+  onFlip,
+  onClose,
+  onCapture,
+}: {
+  videoRef: React.RefObject<HTMLVideoElement | null>;
+  mirrored: boolean;
+  cameraError: string | null;
+  flash: boolean;
+  selectedFrame: Frame | null;
+  onMirror: () => void;
+  onFlip: () => void;
+  onClose: () => void;
+  onCapture: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 h-dvh w-full bg-black animate-in fade-in-0 duration-200">
+      <video
+        ref={videoRef}
+        autoPlay
+        playsInline
+        muted
+        className={cn(
+          "absolute inset-0 h-full w-full object-cover",
+          mirrored && "-scale-x-100",
+        )}
+      />
+
+      {selectedFrame ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={selectedFrame.image_url}
+          alt=""
+          className="pointer-events-none absolute inset-0 h-full w-full object-cover"
+        />
+      ) : null}
+
+      {flash ? (
+        <div className="animate-flash pointer-events-none absolute inset-0 z-10 bg-white" />
+      ) : null}
+
+      <div className="pointer-events-none absolute inset-x-0 top-0 flex items-center justify-between p-4">
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Fechar câmera"
+          className="pointer-events-auto flex size-10 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-md transition-colors hover:bg-black/60 active:scale-95"
+        >
+          <XIcon className="size-5" />
+        </button>
+
+        {selectedFrame ? (
+          <span className="rounded-full bg-black/40 px-3 py-1.5 text-xs font-medium text-white backdrop-blur-md">
+            {selectedFrame.name}
+          </span>
+        ) : null}
+
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={onFlip}
+            aria-label="Trocar câmera frontal/traseira"
+            className={cn(
+              "flex size-10 items-center justify-center rounded-full text-white backdrop-blur-md transition-colors active:scale-95",
+              mirrored ? "bg-black/40" : "bg-black/40",
+            )}
+          >
+            <SwitchCameraIcon className="size-5" />
+          </button>
+        </div>
+      </div>
+
+      {cameraError ? (
+        <div className="absolute inset-0 flex items-center justify-center bg-black p-8 text-center">
+          <div className="max-w-sm space-y-3">
+            <p className="text-sm text-white/90">{cameraError}</p>
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-full bg-white px-5 py-2 text-sm font-medium text-black"
+            >
+              Voltar
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      <div className="absolute inset-x-0 bottom-0 flex items-end justify-center gap-12 px-6 pb-10 sm:pb-14">
+        <button
+          type="button"
+          onClick={onFlip}
+          aria-label="Trocar câmera"
+          className="mb-6 flex size-12 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-md transition-colors hover:bg-black/60 active:scale-95"
+        >
+          <SwitchCameraIcon className="size-5" />
+        </button>
+
+        <button
+          type="button"
+          onClick={onCapture}
+          disabled={!!cameraError}
+          aria-label="Tirar foto"
+          className="size-20 rounded-full border-4 border-white bg-white shadow-[0_0_0_4px_rgb(255_255_255/0.35)] transition-transform duration-150 active:scale-90 disabled:opacity-60"
+        />
+
+        <button
+          type="button"
+          onClick={onMirror}
+          aria-label="Espelhar imagem"
+          className={cn(
+            "mb-6 flex size-12 items-center justify-center rounded-full text-white backdrop-blur-md transition-colors active:scale-95",
+            mirrored
+              ? "bg-black/40 ring-2 ring-white/40"
+              : "bg-black/40 ring-1 ring-white/20",
+          )}
+        >
+          <FlipHorizontalIcon className="size-5" />
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -529,7 +628,11 @@ function FramePicker({
         })}
       </div>
 
-      <Button size="lg" className="w-full gap-2 rounded-full" onClick={onContinue}>
+      <Button
+        size="lg"
+        className="w-full gap-2 rounded-full"
+        onClick={onContinue}
+      >
         <CameraIcon /> Continuar para a foto
       </Button>
     </div>
