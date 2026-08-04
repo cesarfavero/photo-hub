@@ -161,7 +161,7 @@ export function EventCard({
       </div>
 
       <div className="flex items-center gap-4 self-center rounded-xl bg-white p-2 shadow-sm ring-1 ring-foreground/5 sm:self-start">
-        <QrCode url={eventUrl} size={140} />
+        <QrCode url={eventUrl} size={140} download filename={`qr-${event.slug}.png`} />
       </div>
     </div>
   );
