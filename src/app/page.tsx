@@ -60,7 +60,7 @@ export default function Home() {
               size="lg"
               nativeButton={false}
               className="gap-2 rounded-full px-7"
-              render={<Link href="/admin" />}
+              render={<Link href="/admin/login" />}
             >
               Criar meu evento
               <ArrowRightIcon className="size-4" />
