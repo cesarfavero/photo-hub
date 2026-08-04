@@ -7,3 +7,8 @@ This version has breaking changes — APIs, conventions, and file structure may 
 This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
 
 <!-- END:nextjs-agent-rules -->
+
+## Regras do projeto
+
+- Sempre fazer commit e push para `main` ao concluir uma tarefa (o deploy na Vercel é automático).
+- Commits em português, curtos e descritivos (ex.: `fix: ...`, `feat: ...`, `style: ...`).

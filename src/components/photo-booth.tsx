@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import {
   ArrowLeftIcon,
   CameraIcon,
@@ -10,7 +11,6 @@ import {
   PartyPopperIcon,
   RefreshCwIcon,
   SwitchCameraIcon,
-  UploadIcon,
   UserRoundIcon,
   XIcon,
 } from "lucide-react";
@@ -249,12 +249,6 @@ export function PhotoBooth({
     setStep("frame");
   };
 
-  const scrollToGallery = () => {
-    document
-      .getElementById("galeria")
-      ?.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
-
   if (step === "camera") {
     return (
       <FullscreenCamera
@@ -272,22 +266,21 @@ export function PhotoBooth({
   }
 
   return (
-    <section id="cabine" className="rounded-2xl border bg-card shadow-sm">
-      <div className="p-4 sm:p-6">
-        <StepIndicator step={step} />
+    <section id="cabine">
+      <StepIndicator step={step} />
 
-        <div
-          key={step}
-          className="animate-in fade-in-0 slide-in-from-bottom-2 duration-300"
-        >
-          {step === "frame" && (
-            <FramePicker
-              frames={frames}
-              selectedFrameId={selectedFrameId}
-              onSelect={setSelectedFrameId}
-              onContinue={() => setStep("camera")}
-            />
-          )}
+      <div
+        key={step}
+        className="animate-in fade-in-0 slide-in-from-bottom-2 duration-300"
+      >
+        {step === "frame" && (
+          <FramePicker
+            frames={frames}
+            selectedFrameId={selectedFrameId}
+            onSelect={setSelectedFrameId}
+            onContinue={() => setStep("camera")}
+          />
+        )}
 
           {step === "captured" && capturedUrl && (
             <div className="flex flex-col items-center">
@@ -359,7 +352,10 @@ export function PhotoBooth({
                 </p>
               </div>
               <div className="mt-2 flex flex-col gap-3 sm:flex-row">
-                <Button onClick={scrollToGallery}>
+                <Button
+                  nativeButton={false}
+                  render={<Link href={`/${event.slug}/galeria`} />}
+                >
                   <ImageIcon /> Ver galeria
                 </Button>
                 <Button variant="outline" onClick={reset}>
@@ -369,7 +365,6 @@ export function PhotoBooth({
             </div>
           )}
         </div>
-      </div>
     </section>
   );
 }
@@ -579,54 +574,48 @@ function FramePicker({
         </p>
       </div>
 
-      {frames.length === 0 ? (
-        <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
-          <UploadIcon className="mx-auto mb-2 size-6" />
-          Ainda não há molduras neste evento. Você pode tirar a foto sem
-          moldura.
-        </div>
-      ) : null}
-
-      <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
-        {options.map(({ id }) => {
-          const frame = frames.find((f) => f.id === id);
-          const selected = selectedFrameId === id;
-          return (
-            <button
-              key={id ?? "none"}
-              type="button"
-              onClick={() => onSelect(id)}
-              className={cn(
-                "group relative aspect-[3/4] overflow-hidden rounded-xl border-2 bg-muted transition-all duration-200",
-                selected
-                  ? "border-primary ring-2 ring-primary/25 shadow-md"
-                  : "border-transparent hover:border-foreground/15 hover:shadow-sm",
-              )}
-            >
-              {frame ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={frame.image_url}
-                  alt={frame.name}
-                  className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
-                />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center text-muted-foreground">
-                  <ImageIcon className="size-6" />
-                </div>
-              )}
-              {selected ? (
-                <span className="absolute right-1.5 top-1.5 flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm">
-                  <CheckIcon className="size-3" />
+      {frames.length === 0 ? null : (
+        <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 sm:gap-3 lg:grid-cols-5">
+          {options.map(({ id }) => {
+            const frame = frames.find((f) => f.id === id);
+            const selected = selectedFrameId === id;
+            return (
+              <button
+                key={id ?? "none"}
+                type="button"
+                onClick={() => onSelect(id)}
+                className={cn(
+                  "group relative aspect-[3/4] overflow-hidden rounded-lg border-2 bg-muted transition-all duration-200 sm:rounded-xl",
+                  selected
+                    ? "border-primary ring-2 ring-primary/25 shadow-md"
+                    : "border-transparent hover:border-foreground/15 hover:shadow-sm",
+                )}
+              >
+                {frame ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={frame.image_url}
+                    alt={frame.name}
+                    className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center text-muted-foreground">
+                    <ImageIcon className="size-6" />
+                  </div>
+                )}
+                {selected ? (
+                  <span className="absolute right-1.5 top-1.5 flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm">
+                    <CheckIcon className="size-3" />
+                  </span>
+                ) : null}
+                <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent px-1.5 pb-1 pt-4 text-left text-[10px] font-medium text-white">
+                  {frame ? frame.name : "Sem moldura"}
                 </span>
-              ) : null}
-              <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent px-1.5 pb-1 pt-4 text-left text-[10px] font-medium text-white">
-                {frame ? frame.name : "Sem moldura"}
-              </span>
-            </button>
-          );
-        })}
-      </div>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       <Button
         size="lg"
