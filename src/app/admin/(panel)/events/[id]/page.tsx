@@ -42,6 +42,7 @@ export default async function ManageEventPage({
       <AdminHeader
         title={event.name}
         subtitle={`Link: /${event.slug} · Gerenciar molduras, fotos e informações.`}
+        backHref="/admin"
       />
       <div className="space-y-6">
         <EventSettings event={event} />
