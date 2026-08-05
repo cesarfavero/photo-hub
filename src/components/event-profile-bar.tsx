@@ -15,7 +15,13 @@ import { ProfileCreator } from "@/components/profile-creator";
 import { useEventProfile } from "@/hooks/use-event-profile";
 import type { Event } from "@/lib/types";
 
-export function EventProfileBar({ event }: { event: Event }) {
+export function EventProfileBar({
+  event,
+  hideFoundBar = false,
+}: {
+  event: Event;
+  hideFoundBar?: boolean;
+}) {
   const { state, refresh } = useEventProfile(event.id);
   const [showCreator, setShowCreator] = useState(false);
 
@@ -24,6 +30,7 @@ export function EventProfileBar({ event }: { event: Event }) {
   }
 
   if (state.status === "found") {
+    if (hideFoundBar) return null;
     return (
       <div className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-foreground/10 bg-card/60 px-4 py-3">
         <div className="flex items-center gap-3 min-w-0">

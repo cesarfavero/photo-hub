@@ -81,7 +81,7 @@ export default async function EventPage({ params }: PageProps) {
     >
       <div className="mx-auto w-full max-w-5xl flex-1 px-4 pb-24 pt-10 sm:px-6 sm:pt-14">
         <EventHeader event={event} />
-        <EventProfileBar event={event} />
+        <EventProfileBar event={event} hideFoundBar />
         <PhotoBooth event={event} frames={frames ?? []} />
 
         <div className="mt-14">

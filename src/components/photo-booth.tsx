@@ -9,6 +9,7 @@ import {
   FlipHorizontalIcon,
   ImageIcon,
   PartyPopperIcon,
+  PlusIcon,
   RefreshCwIcon,
   SwitchCameraIcon,
   UserRoundIcon,
@@ -30,9 +31,11 @@ import {
 } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-type Step = "frame" | "camera" | "captured" | "success";
+type Step = "frame" | "camera" | "name" | "success";
 
 type FacingMode = "user" | "environment";
+
+const MAX_PHOTOS = 3;
 
 function drawCover(
   ctx: CanvasRenderingContext2D,
@@ -72,7 +75,8 @@ export function PhotoBooth({
   const [mirrored, setMirrored] = useState(true);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [cameraReady, setCameraReady] = useState(false);
-  const [capturedUrl, setCapturedUrl] = useState<string | null>(null);
+  const [pendingUrl, setPendingUrl] = useState<string | null>(null);
+  const [acceptedUrls, setAcceptedUrls] = useState<string[]>([]);
   const [authorName, setAuthorName] = useState("");
   const [uploading, setUploading] = useState(false);
   const [flash, setFlash] = useState(false);
@@ -82,8 +86,16 @@ export function PhotoBooth({
   const streamRef = useRef<MediaStream | null>(null);
   const facingRef = useRef<FacingMode>("user");
   const flashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const namePrefilledRef = useRef(false);
 
   const selectedFrame = frames.find((f) => f.id === selectedFrameId) ?? null;
+
+  useEffect(() => {
+    if (!namePrefilledRef.current && profile?.name?.trim()) {
+      namePrefilledRef.current = true;
+      setAuthorName(profile.name.trim());
+    }
+  }, [profile]);
 
   useEffect(() => {
     return () => {
@@ -178,22 +190,7 @@ export function PhotoBooth({
     if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
     flashTimerRef.current = setTimeout(() => setFlash(false), 450);
 
-    const canvas = document.createElement("canvas");
-    canvas.width = PHOTO_WIDTH;
-    canvas.height = PHOTO_HEIGHT;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    drawCover(
-      ctx,
-      video,
-      video.videoWidth,
-      video.videoHeight,
-      PHOTO_WIDTH,
-      PHOTO_HEIGHT,
-      mirrored,
-    );
-
+    let frameImg: HTMLImageElement | null = null;
     if (selectedFrame) {
       const img = new Image();
       img.crossOrigin = "anonymous";
@@ -203,7 +200,7 @@ export function PhotoBooth({
           img.onerror = () => reject();
           img.src = selectedFrame.image_url;
         });
-        drawCover(ctx, img, img.width, img.height, PHOTO_WIDTH, PHOTO_HEIGHT);
+        frameImg = img;
       } catch {
         toast.error("Não foi possível carregar a moldura", {
           description: "Tente novamente ou escolha outra moldura.",
@@ -212,96 +209,177 @@ export function PhotoBooth({
       }
     }
 
+    const canvas = document.createElement("canvas");
+    canvas.width = PHOTO_WIDTH;
+    canvas.height = frameImg
+      ? Math.round(PHOTO_WIDTH * (frameImg.height / frameImg.width))
+      : PHOTO_HEIGHT;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    drawCover(
+      ctx,
+      video,
+      video.videoWidth,
+      video.videoHeight,
+      canvas.width,
+      canvas.height,
+      mirrored,
+    );
+
+    if (frameImg) {
+      ctx.drawImage(frameImg, 0, 0, canvas.width, canvas.height);
+    }
+
     const blob = await new Promise<Blob | null>((resolve) =>
       canvas.toBlob(resolve, "image/jpeg", 1),
     );
     if (!blob) return;
 
-    if (capturedUrl) URL.revokeObjectURL(capturedUrl);
-    setCapturedUrl(URL.createObjectURL(blob));
-    setStep("captured");
+    setPendingUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return URL.createObjectURL(blob);
+    });
   };
 
-  const upload = async () => {
-    if (!capturedUrl) return;
+  const acceptPending = () => {
+    if (!pendingUrl) return;
+    setAcceptedUrls((prev) =>
+      prev.length < MAX_PHOTOS ? [...prev, pendingUrl] : prev,
+    );
+    setPendingUrl(null);
+  };
+
+  const retakePending = () => {
+    setPendingUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return null;
+    });
+  };
+
+  const removeAccepted = (index: number) => {
+    setAcceptedUrls((prev) => {
+      const next = [...prev];
+      const removed = next.splice(index, 1)[0];
+      if (removed) URL.revokeObjectURL(removed);
+      return next;
+    });
+  };
+
+  const discardAll = () => {
+    setPendingUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return null;
+    });
+    acceptedUrls.forEach((u) => URL.revokeObjectURL(u));
+    setAcceptedUrls([]);
+    setStep("frame");
+  };
+
+  const goToName = () => {
+    if (acceptedUrls.length === 0) return;
+    setStep("name");
+  };
+
+  const publishAll = async () => {
+    if (acceptedUrls.length === 0) return;
     setUploading(true);
     const supabase = createClient();
+    const displayName = authorName.trim() || profile?.name?.trim() || null;
 
-    const blob = await fetch(capturedUrl).then((r) => r.blob());
-    const photoId = crypto.randomUUID();
-    const path = `${event.id}/${photoId}.jpg`;
+    let published = 0;
+    for (const url of acceptedUrls) {
+      const blob = await fetch(url)
+        .then((r) => r.blob())
+        .catch(() => null);
+      if (!blob) {
+        toast.error("Falha ao ler a foto", {
+          description: "Tente publicar novamente.",
+        });
+        break;
+      }
+      const photoId = crypto.randomUUID();
+      const path = `${event.id}/${photoId}.jpg`;
 
-    const { error: uploadError } = await supabase.storage
-      .from("photos")
-      .upload(path, blob, { contentType: "image/jpeg", upsert: false });
-    if (uploadError) {
-      toast.error("Falha no envio", {
-        description: "Não conseguimos enviar a foto. Tente novamente.",
-      });
-      setUploading(false);
-      return;
-    }
+      const { error: uploadError } = await supabase.storage
+        .from("photos")
+        .upload(path, blob, { contentType: "image/jpeg", upsert: false });
+      if (uploadError) {
+        toast.error("Falha no envio", {
+          description: "Não conseguimos enviar a foto. Tente novamente.",
+        });
+        break;
+      }
 
-    const { data: urlData } = supabase.storage
-      .from("photos")
-      .getPublicUrl(path);
+      const { data: urlData } = supabase.storage
+        .from("photos")
+        .getPublicUrl(path);
 
-    const displayName =
-      authorName.trim() || profile?.name?.trim() || null;
+      const { data: inserted, error: insertError } = await supabase
+        .from("photos")
+        .insert({
+          id: photoId,
+          event_id: event.id,
+          frame_id: selectedFrameId,
+          storage_path: path,
+          public_url: urlData.publicUrl,
+          author_name: displayName,
+          uploaded_by_profile_id: profile?.id ?? null,
+          analysis_status: "pending",
+        })
+        .select("id")
+        .single();
 
-    const { data: inserted, error: insertError } = await supabase
-      .from("photos")
-      .insert({
-        id: photoId,
-        event_id: event.id,
-        frame_id: selectedFrameId,
-        storage_path: path,
-        public_url: urlData.publicUrl,
-        author_name: displayName,
-        uploaded_by_profile_id: profile?.id ?? null,
-        analysis_status: "pending",
-      })
-      .select("id")
-      .single();
+      if (insertError) {
+        toast.error("Falha ao publicar", {
+          description:
+            "Não conseguimos salvar sua foto na galeria. Tente novamente.",
+        });
+        break;
+      }
 
-    if (insertError) {
-      toast.error("Falha ao publicar", {
-        description:
-          "Não conseguimos salvar sua foto na galeria. Tente novamente.",
-      });
-      setUploading(false);
-      return;
-    }
-
-    // Vincular foto ao perfil do dispositivo, se houver
-    try {
-      const tokenHash = await getDeviceTokenHash(event.id);
-      const linkedId = inserted?.id ?? photoId;
-      const { error: linkError } = await supabase.rpc("link_uploaded_photo", {
-        p_photo_id: linkedId,
-        p_token_hash: tokenHash,
-      });
-      if (linkError) {
-        await supabase.rpc("link_uploaded_photo_by_path", {
-          p_storage_path: path,
+      try {
+        const tokenHash = await getDeviceTokenHash(event.id);
+        const linkedId = inserted?.id ?? photoId;
+        const { error: linkError } = await supabase.rpc("link_uploaded_photo", {
+          p_photo_id: linkedId,
           p_token_hash: tokenHash,
         });
+        if (linkError) {
+          await supabase.rpc("link_uploaded_photo_by_path", {
+            p_storage_path: path,
+            p_token_hash: tokenHash,
+          });
+        }
+      } catch {
+        // Silencioso: se nao houver perfil, a foto continua na galeria geral
       }
-    } catch {
-      // Silencioso: se nao houver perfil, a foto continua na galeria geral
+
+      published += 1;
     }
 
     triggerAnalysis(event.id);
-
-    toast.success("Foto publicada!", {
-      description: "Ela já aparece na galeria do evento.",
-    });
     setUploading(false);
+
+    if (published === 0) return;
+
+    acceptedUrls.forEach((u) => URL.revokeObjectURL(u));
+    setAcceptedUrls([]);
+    setAuthorName("");
+    setPendingUrl(null);
+
+    toast.success(
+      published === 1 ? "Foto publicada!" : `${published} fotos publicadas!`,
+      {
+        description: "Elas já aparecem na galeria do evento.",
+      },
+    );
     setStep("success");
   };
 
   const reset = () => {
-    setCapturedUrl(null);
+    setPendingUrl(null);
+    setAcceptedUrls([]);
     setAuthorName("");
     setStep("frame");
   };
@@ -315,9 +393,16 @@ export function PhotoBooth({
         cameraReady={cameraReady}
         flash={flash}
         selectedFrame={selectedFrame}
+        pendingUrl={pendingUrl}
+        acceptedUrls={acceptedUrls}
+        maxPhotos={MAX_PHOTOS}
+        onAcceptPending={acceptPending}
+        onRetakePending={retakePending}
+        onRemoveAccepted={removeAccepted}
+        onContinue={goToName}
+        onClose={discardAll}
         onMirror={() => setMirrored((v) => !v)}
         onFlip={switchCamera}
-        onClose={() => setStep("frame")}
         onCapture={capture}
       />
     );
@@ -340,89 +425,104 @@ export function PhotoBooth({
           />
         )}
 
-          {step === "captured" && capturedUrl && (
-            <div className="flex flex-col items-center">
-              <div className="relative w-full max-w-[380px] overflow-hidden rounded-xl bg-black aspect-[3/4] ring-1 ring-foreground/10">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={capturedUrl}
-                  alt="Foto capturada"
-                  className="h-full w-full object-cover"
-                />
-              </div>
+        {step === "name" && (
+          <div className="mx-auto flex max-w-md flex-col gap-5">
+            <div className="text-center">
+              <h2 className="text-lg font-semibold">Quase lá!</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Confira as fotos e informe seu nome.
+              </p>
+            </div>
 
-              <div className="mt-6 w-full max-w-[380px] space-y-4">
-                <div className="space-y-2">
-                  <Label
-                    htmlFor="author-name"
-                    className="flex items-center gap-2"
-                  >
-                    <UserRoundIcon className="size-4" /> Seu nome (opcional)
-                  </Label>
-                  <Input
-                    id="author-name"
-                    value={authorName || profile?.name || ""}
-                    onChange={(e) => setAuthorName(e.target.value)}
-                    placeholder="Ex.: Maria Souza"
-                    maxLength={60}
-                    className="h-11 text-base"
+            <div className="flex justify-center gap-2">
+              {acceptedUrls.map((url, i) => (
+                <div
+                  key={url}
+                  className="relative h-28 w-20 overflow-hidden rounded-lg bg-black ring-1 ring-foreground/10"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={url}
+                    alt={`Foto ${i + 1}`}
+                    className="h-full w-full object-cover"
                   />
                 </div>
-                <div className="flex gap-3">
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setCapturedUrl(null);
-                      setStep("camera");
-                    }}
-                    className="flex-1"
-                    disabled={uploading}
-                  >
-                    <ArrowLeftIcon /> Refazer
-                  </Button>
-                  <Button
-                    onClick={upload}
-                    className="flex-1"
-                    disabled={uploading}
-                  >
-                    {uploading ? (
-                      <RefreshCwIcon className="animate-spin" />
-                    ) : (
-                      <CheckIcon />
-                    )}
-                    {uploading ? "Publicando…" : "Publicar"}
-                  </Button>
-                </div>
-              </div>
+              ))}
             </div>
-          )}
 
-          {step === "success" && (
-            <div className="flex flex-col items-center gap-4 py-10 text-center">
-              <div className="relative flex size-20 items-center justify-center rounded-full bg-primary/10 text-primary">
-                <span className="absolute inset-0 rounded-full bg-primary/10 animate-ping" />
-                <PartyPopperIcon className="size-9" strokeWidth={1.5} />
-              </div>
-              <div>
-                <h3 className="text-xl font-semibold">Foto publicada!</h3>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Sua foto já está na galeria do evento.
-                </p>
-              </div>
-              <div className="mt-2 flex flex-col gap-3 sm:flex-row">
-                <Button
-                  nativeButton={false}
-                  render={<Link href={`/${event.slug}/galeria`} />}
-                >
-                  <ImageIcon /> Ver galeria
-                </Button>
-                <Button variant="outline" onClick={reset}>
-                  <CameraIcon /> Tirar outra
-                </Button>
-              </div>
+            <div className="space-y-2">
+              <Label
+                htmlFor="author-name"
+                className="flex items-center gap-2"
+              >
+                <UserRoundIcon className="size-4" /> Seu nome (opcional)
+              </Label>
+              <Input
+                id="author-name"
+                value={authorName}
+                onChange={(e) => setAuthorName(e.target.value)}
+                placeholder="Ex.: Maria Souza"
+                maxLength={60}
+                className="h-11 text-base"
+              />
             </div>
-          )}
-        </div>
+
+            <Button
+              size="lg"
+              onClick={publishAll}
+              disabled={uploading}
+              className="w-full rounded-full"
+            >
+              {uploading ? (
+                <RefreshCwIcon className="animate-spin" />
+              ) : (
+                <CheckIcon />
+              )}
+              {uploading
+                ? "Publicando…"
+                : `Publicar ${acceptedUrls.length} ${
+                    acceptedUrls.length === 1 ? "foto" : "fotos"
+                  }`}
+            </Button>
+
+            <Button
+              size="lg"
+              variant="outline"
+              onClick={() => setStep("camera")}
+              disabled={uploading}
+              className="w-full rounded-full"
+            >
+              <ArrowLeftIcon /> Refazer fotos
+            </Button>
+          </div>
+        )}
+
+        {step === "success" && (
+          <div className="flex flex-col items-center gap-4 py-10 text-center">
+            <div className="relative flex size-20 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <span className="absolute inset-0 rounded-full bg-primary/10 animate-ping" />
+              <PartyPopperIcon className="size-9" strokeWidth={1.5} />
+            </div>
+            <div>
+              <h3 className="text-xl font-semibold">Foto publicada!</h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Suas fotos já estão na galeria do evento.
+              </p>
+            </div>
+            <div className="mt-2 flex flex-col gap-3 sm:flex-row">
+              <Button
+                nativeButton={false}
+                render={<Link href={`/${event.slug}/galeria`} />}
+              >
+                <ImageIcon /> Ver galeria
+              </Button>
+              <Button variant="outline" onClick={reset}>
+                <CameraIcon /> Tirar outra
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
     </section>
   );
 }
@@ -434,9 +534,16 @@ function FullscreenCamera({
   cameraReady,
   flash,
   selectedFrame,
+  pendingUrl,
+  acceptedUrls,
+  maxPhotos,
+  onAcceptPending,
+  onRetakePending,
+  onRemoveAccepted,
+  onContinue,
+  onClose,
   onMirror,
   onFlip,
-  onClose,
   onCapture,
 }: {
   videoRef: React.RefObject<HTMLVideoElement | null>;
@@ -445,11 +552,83 @@ function FullscreenCamera({
   cameraReady: boolean;
   flash: boolean;
   selectedFrame: Frame | null;
+  pendingUrl: string | null;
+  acceptedUrls: string[];
+  maxPhotos: number;
+  onAcceptPending: () => void;
+  onRetakePending: () => void;
+  onRemoveAccepted: (index: number) => void;
+  onContinue: () => void;
+  onClose: () => void;
   onMirror: () => void;
   onFlip: () => void;
-  onClose: () => void;
   onCapture: () => void;
 }) {
+  if (pendingUrl) {
+    return (
+      <div className="fixed inset-0 z-50 h-dvh w-full bg-black animate-in fade-in-0 duration-200">
+        <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-center justify-between p-4">
+          <button
+            type="button"
+            onClick={onRetakePending}
+            aria-label="Tirar novamente"
+            className="pointer-events-auto flex size-10 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-md transition-colors hover:bg-black/60 active:scale-95"
+          >
+            <ArrowLeftIcon className="size-5" />
+          </button>
+
+          <span className="rounded-full bg-black/40 px-3 py-1.5 text-xs font-medium text-white backdrop-blur-md">
+            Foto {acceptedUrls.length + 1} de {maxPhotos}
+          </span>
+
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Cancelar"
+            className="pointer-events-auto flex size-10 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-md transition-colors hover:bg-black/60 active:scale-95"
+          >
+            <XIcon className="size-5" />
+          </button>
+        </div>
+
+        <div className="flex h-full items-center justify-center px-4 py-24">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={pendingUrl}
+            alt="Foto capturada"
+            className="max-h-full w-auto max-w-full rounded-lg object-contain"
+          />
+        </div>
+
+        <div className="absolute inset-x-0 bottom-0 z-10 flex items-end justify-center gap-14 px-6 pb-12">
+          <button
+            type="button"
+            onClick={onRetakePending}
+            aria-label="Tirar novamente"
+            className="flex flex-col items-center gap-2 text-white"
+          >
+            <span className="flex size-16 items-center justify-center rounded-full bg-black/40 backdrop-blur-md transition-colors hover:bg-black/60 active:scale-95">
+              <RefreshCwIcon className="size-7" />
+            </span>
+            <span className="text-xs font-medium">Refazer</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={onAcceptPending}
+            aria-label="Usar foto"
+            className="flex flex-col items-center gap-2 text-white"
+          >
+            <span className="flex size-16 items-center justify-center rounded-full bg-emerald-500 shadow-[0_0_0_4px_rgb(255_255_255/0.35)] transition-transform duration-150 active:scale-90">
+              <CheckIcon className="size-9" strokeWidth={3} />
+            </span>
+            <span className="text-xs font-medium">Usar foto</span>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="fixed inset-0 z-50 h-dvh w-full bg-black animate-in fade-in-0 duration-200">
       <video
@@ -468,7 +647,7 @@ function FullscreenCamera({
         <img
           src={selectedFrame.image_url}
           alt=""
-          className="pointer-events-none absolute inset-0 h-full w-full object-cover"
+          className="pointer-events-none absolute inset-0 h-full w-full object-contain"
         />
       ) : null}
 
@@ -492,19 +671,14 @@ function FullscreenCamera({
           </span>
         ) : null}
 
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={onFlip}
-            aria-label="Trocar câmera frontal/traseira"
-            className={cn(
-              "flex size-10 items-center justify-center rounded-full text-white backdrop-blur-md transition-colors active:scale-95",
-              mirrored ? "bg-black/40" : "bg-black/40",
-            )}
-          >
-            <SwitchCameraIcon className="size-5" />
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={onFlip}
+          aria-label="Trocar câmera"
+          className="pointer-events-auto flex size-10 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-md transition-colors hover:bg-black/60 active:scale-95"
+        >
+          <SwitchCameraIcon className="size-5" />
+        </button>
       </div>
 
       {cameraError ? (
@@ -519,6 +693,53 @@ function FullscreenCamera({
               Voltar
             </button>
           </div>
+        </div>
+      ) : null}
+
+      {acceptedUrls.length > 0 ? (
+        <div className="absolute inset-x-0 bottom-32 z-10 flex items-center justify-center gap-3 px-4">
+          <div className="flex items-center gap-2 rounded-2xl bg-black/50 p-2 backdrop-blur-md">
+            {acceptedUrls.map((url, i) => (
+              <div
+                key={url}
+                className="relative size-12 overflow-hidden rounded-lg bg-black ring-2 ring-white/40"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={url}
+                  alt={`Foto ${i + 1}`}
+                  className="h-full w-full object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={() => onRemoveAccepted(i)}
+                  aria-label="Remover foto"
+                  className="absolute -right-1 -top-1 flex size-4 items-center justify-center rounded-full bg-white text-black"
+                >
+                  <XIcon className="size-2.5" />
+                </button>
+              </div>
+            ))}
+            {acceptedUrls.length < maxPhotos ? (
+              <button
+                type="button"
+                onClick={onCapture}
+                aria-label="Adicionar nova foto"
+                className="flex size-12 items-center justify-center rounded-lg border-2 border-dashed border-white/40 text-white transition-colors hover:bg-white/10"
+              >
+                <PlusIcon className="size-5" />
+              </button>
+            ) : null}
+          </div>
+
+          <Button
+            size="sm"
+            onClick={onContinue}
+            disabled={acceptedUrls.length === 0}
+            className="shrink-0 rounded-full"
+          >
+            Continuar ({acceptedUrls.length})
+          </Button>
         </div>
       ) : null}
 
@@ -566,7 +787,7 @@ function StepIndicator({ step }: { step: Step }) {
   const steps: { key: Step; label: string }[] = [
     { key: "frame", label: "Moldura" },
     { key: "camera", label: "Foto" },
-    { key: "captured", label: "Nome" },
+    { key: "name", label: "Nome" },
     { key: "success", label: "Publicar" },
   ];
   const currentIndex = steps.findIndex((s) => s.key === step);
@@ -638,37 +859,37 @@ function FramePicker({
 
       {frames.length === 0 ? null : (
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 sm:gap-3 lg:grid-cols-5">
-      {frames.map((frame) => {
-        const selected = selectedFrameId === frame.id;
-        return (
-          <button
-            key={frame.id}
-            type="button"
-            onClick={() => onSelect(frame.id)}
-            className={cn(
-              "group relative aspect-[3/4] overflow-hidden rounded-lg border-2 bg-muted transition-all duration-200 sm:rounded-xl",
-              selected
-                ? "border-primary ring-2 ring-primary/25 shadow-md"
-                : "border-transparent hover:border-foreground/15 hover:shadow-sm",
-            )}
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={frame.image_url}
-              alt={frame.name}
-              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
-            />
-            {selected ? (
-              <span className="absolute right-1.5 top-1.5 flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm">
-                <CheckIcon className="size-3" />
-              </span>
-            ) : null}
-            <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent px-1.5 pb-1 pt-4 text-left text-[10px] font-medium text-white">
-              {frame.name}
-            </span>
-          </button>
-        );
-      })}
+          {frames.map((frame) => {
+            const selected = selectedFrameId === frame.id;
+            return (
+              <button
+                key={frame.id}
+                type="button"
+                onClick={() => onSelect(frame.id)}
+                className={cn(
+                  "group relative aspect-[3/4] overflow-hidden rounded-lg border-2 bg-muted transition-all duration-200 sm:rounded-xl",
+                  selected
+                    ? "border-primary ring-2 ring-primary/25 shadow-md"
+                    : "border-transparent hover:border-foreground/15 hover:shadow-sm",
+                )}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={frame.image_url}
+                  alt={frame.name}
+                  className="h-full w-full object-contain transition-transform duration-300 group-hover:scale-[1.03]"
+                />
+                {selected ? (
+                  <span className="absolute right-1.5 top-1.5 flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm">
+                    <CheckIcon className="size-3" />
+                  </span>
+                ) : null}
+                <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent px-1.5 pb-1 pt-4 text-left text-[10px] font-medium text-white">
+                  {frame.name}
+                </span>
+              </button>
+            );
+          })}
         </div>
       )}
 

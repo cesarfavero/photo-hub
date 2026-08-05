@@ -154,7 +154,7 @@ export function PhotoManager({ photos }: { photos: Photo[] }) {
               <img
                 src={photo.public_url}
                 alt={photo.author_name ?? "Foto"}
-                className={photo.archived ? "h-full w-full object-cover opacity-40 grayscale" : "h-full w-full object-cover"}
+                className={photo.archived ? "h-full w-full object-contain opacity-40 grayscale" : "h-full w-full object-contain"}
               />
               <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-1 bg-gradient-to-t from-black/70 to-transparent px-1.5 pb-1 pt-5 text-[10px] font-medium text-white">
                 <span className="truncate">

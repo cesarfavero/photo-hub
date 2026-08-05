@@ -26,6 +26,39 @@ import { Label } from "@/components/ui/label";
 import { createClient } from "@/lib/supabase/client";
 import type { Frame } from "@/lib/types";
 
+async function normalizeImageToPng(file: File): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("read"));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error("decode"));
+      img.onload = () => {
+        const maxSide = 1600;
+        const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
+        const width = Math.round(img.width * scale);
+        const height = Math.round(img.height * scale);
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          reject(new Error("canvas"));
+          return;
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob(
+          (blob) =>
+            blob ? resolve(blob) : reject(new Error("encode")),
+          "image/png",
+        );
+      };
+      img.src = reader.result as string;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 export function FrameManager({
   eventId,
   frames,
@@ -41,18 +74,32 @@ export function FrameManager({
   const upload = async (file: File) => {
     if (!file.type.startsWith("image/")) {
       toast.error("Arquivo inválido", {
-        description: "Envie uma imagem PNG com o centro transparente.",
+        description: "Envie uma imagem com o centro transparente.",
       });
       return;
     }
     setUploading(true);
     const supabase = createClient();
-    const frameId = crypto.randomUUID();
+    const frameId =
+      globalThis.crypto?.randomUUID?.() ??
+      `${Date.now()}-${Math.random().toString(36).slice(2)}`;
     const path = `${eventId}/${frameId}.png`;
+
+    let payload: Blob = file;
+    try {
+      payload = await normalizeImageToPng(file);
+    } catch {
+      toast.error("Imagem não pôde ser processada", {
+        description:
+          "Tente com um PNG ou JPG e verifique se o arquivo não está corrompido.",
+      });
+      setUploading(false);
+      return;
+    }
 
     const { error: upError } = await supabase.storage
       .from("frames")
-      .upload(path, file, { contentType: file.type });
+      .upload(path, payload, { contentType: "image/png" });
     if (upError) {
       toast.error("Falha no envio", {
         description: "Não conseguimos enviar a moldura. Tente novamente.",
@@ -103,7 +150,7 @@ export function FrameManager({
         <div>
           <h3 className="font-semibold">Molduras</h3>
           <p className="text-xs text-muted-foreground">
-            Use imagens PNG 3:4 com o centro transparente.
+            PNG com o centro transparente (qualquer proporção).
           </p>
         </div>
         <Button
@@ -160,7 +207,7 @@ export function FrameManager({
               <img
                 src={frame.image_url}
                 alt={frame.name}
-                className="h-full w-full object-cover"
+                className="h-full w-full object-contain"
               />
               <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent px-1.5 pb-1 pt-4 text-left text-[10px] font-medium text-white">
                 {frame.name}
