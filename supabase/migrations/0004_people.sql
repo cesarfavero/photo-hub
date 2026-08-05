@@ -73,7 +73,7 @@ create table if not exists public.detected_faces (
   created_at timestamptz not null default now()
 );
 create index if not exists detected_faces_photo_idx on public.detected_faces(photo_id);
-create index not exists detected_faces_event_idx on public.detected_faces(event_id);
+create index if not exists detected_faces_event_idx on public.detected_faces(event_id);
 create index if not exists detected_faces_cluster_idx on public.detected_faces(cluster_id);
 
 -- ---------- RLS ----------
@@ -81,6 +81,19 @@ alter table public.participant_profiles enable row level security;
 alter table public.device_identities enable row level security;
 alter table public.face_clusters enable row level security;
 alter table public.detected_faces enable row level security;
+
+create or replace function public.is_event_owner(p_event_id uuid)
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select exists (
+    select 1 from public.events e
+    where e.id = p_event_id and e.user_id = auth.uid()
+  );
+$$;
 
 -- Políticas para participant_profiles: público pode ler, dono pode tudo
 create policy "participant_profiles: select public" on public.participant_profiles
@@ -101,23 +114,6 @@ create policy "face_clusters: manage owner" on public.face_clusters
 -- Políticas para detected_faces: acesso via funções RPC
 create policy "detected_faces: deny direct" on public.detected_faces
   for all using (false);
-
--- =============================================================
--- Funções utilitárias
--- =============================================================
-
-create or replace function public.is_event_owner(p_event_id uuid)
-returns boolean
-language sql
-security definer
-set search_path = public
-stable
-as $$
-  select exists (
-    select 1 from public.events e
-    where e.id = p_event_id and e.user_id = auth.uid()
-  );
-$$;
 
 -- =============================================================
 -- Identidade de dispositivo + perfil (público)

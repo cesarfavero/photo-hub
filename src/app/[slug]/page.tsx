@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { themeVars } from "@/lib/theme";
 import { PhotoBooth } from "@/components/photo-booth";
 import { EventHeader } from "@/components/event-header";
+import { EventProfileBar } from "@/components/event-profile-bar";
 
 type PageProps = { params: Promise<{ slug: string }> };
 
@@ -82,6 +83,7 @@ export default async function EventPage({ params }: PageProps) {
     >
       <div className="mx-auto w-full max-w-5xl flex-1 px-4 pb-24 pt-10 sm:px-6 sm:pt-14">
         <EventHeader event={event} />
+        <EventProfileBar event={event} />
         <PhotoBooth event={event} frames={frames ?? []} />
 
         <div className="mt-14">

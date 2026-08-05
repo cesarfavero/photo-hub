@@ -4,6 +4,7 @@ import { AdminHeader } from "@/components/admin/admin-header";
 import { EventSettings } from "@/components/admin/event-settings";
 import { FrameManager } from "@/components/admin/frame-manager";
 import { PhotoManager } from "@/components/admin/photo-manager";
+import { PeopleManager } from "@/components/admin/people-manager";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
@@ -51,6 +52,7 @@ export default async function ManageEventPage({
       <div className="space-y-6">
         <EventSettings event={event} />
         <FrameManager eventId={event.id} frames={frames ?? []} />
+        <PeopleManager eventId={event.id} />
         <PhotoManager photos={photos ?? []} />
       </div>
     </>

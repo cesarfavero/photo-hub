@@ -18,7 +18,10 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
-const baseLinks = [{ href: "/admin", label: "Início", icon: HomeIcon }];
+const baseLinks = [
+  { href: "/admin", label: "Início", icon: HomeIcon },
+  { href: "/admin/pessoas", label: "Pessoas", icon: UsersIcon },
+];
 
 const adminLinks = [
   { href: "/admin/metricas", label: "Métricas", icon: BarChart3Icon },

@@ -11,7 +11,9 @@ import {
   XIcon,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import type { Photo } from "@/lib/types";
+import { useEventProfile } from "@/hooks/use-event-profile";
+import { PeopleStrip } from "@/components/people-strip";
+import type { EventPerson, Photo } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -23,26 +25,36 @@ import {
 
 export function Gallery({ eventId }: { eventId: string }) {
   const [photos, setPhotos] = useState<Photo[]>([]);
+  const [people, setPeople] = useState<EventPerson[]>([]);
+  const [selectedPersonId, setSelectedPersonId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [peopleLoading, setPeopleLoading] = useState(true);
   const [index, setIndex] = useState<number | null>(null);
+  const { profile } = useEventProfile(eventId);
+
+  const fetchPeople = useCallback(async () => {
+    const supabase = createClient();
+    const { data } = await supabase.rpc("get_event_people", {
+      p_event_id: eventId,
+    });
+    return (data as EventPerson[]) ?? [];
+  }, [eventId]);
+
+  const loadPeople = useCallback(async () => {
+    setPeople(await fetchPeople());
+    setPeopleLoading(false);
+  }, [fetchPeople]);
 
   const load = useCallback(async () => {
     const supabase = createClient();
-    const { data } = await supabase
-      .from("photos")
-      .select("*")
-      .eq("event_id", eventId)
-      .eq("approved", true)
-      .eq("archived", false)
-      .order("created_at", { ascending: false });
-    setPhotos(data ?? []);
-    setLoading(false);
-  }, [eventId]);
 
-  useEffect(() => {
-    let active = true;
-    const supabase = createClient();
-    void (async () => {
+    if (selectedPersonId) {
+      const { data } = await supabase.rpc("get_person_photos", {
+        p_event_id: eventId,
+        p_profile_id: selectedPersonId,
+      });
+      setPhotos((data as Photo[]) ?? []);
+    } else {
       const { data } = await supabase
         .from("photos")
         .select("*")
@@ -50,11 +62,59 @@ export function Gallery({ eventId }: { eventId: string }) {
         .eq("approved", true)
         .eq("archived", false)
         .order("created_at", { ascending: false });
-      if (active) {
+      setPhotos(data ?? []);
+    }
+    setLoading(false);
+  }, [eventId, selectedPersonId]);
+
+  useEffect(() => {
+    let active = true;
+    void (async () => {
+      const supabase = createClient();
+      if (selectedPersonId) {
+        const { data } = await supabase.rpc("get_person_photos", {
+          p_event_id: eventId,
+          p_profile_id: selectedPersonId,
+        });
+        if (!active) return;
+        setPhotos((data as Photo[]) ?? []);
+      } else {
+        const { data } = await supabase
+          .from("photos")
+          .select("*")
+          .eq("event_id", eventId)
+          .eq("approved", true)
+          .eq("archived", false)
+          .order("created_at", { ascending: false });
+        if (!active) return;
         setPhotos(data ?? []);
-        setLoading(false);
+      }
+      setLoading(false);
+    })();
+    return () => {
+      active = false;
+    };
+  }, [eventId, selectedPersonId]);
+
+  useEffect(() => {
+    let active = true;
+    void (async () => {
+      const supabase = createClient();
+      const { data } = await supabase.rpc("get_event_people", {
+        p_event_id: eventId,
+      });
+      if (active) {
+        setPeople((data as EventPerson[]) ?? []);
+        setPeopleLoading(false);
       }
     })();
+    return () => {
+      active = false;
+    };
+  }, [eventId]);
+  useEffect(() => {
+    let active = true;
+    const supabase = createClient();
     const channel = supabase
       .channel(`photos:${eventId}`)
       .on(
@@ -65,7 +125,11 @@ export function Gallery({ eventId }: { eventId: string }) {
           table: "photos",
           filter: `event_id=eq.${eventId}`,
         },
-        () => void load(),
+        () => {
+          if (!active) return;
+          void load();
+          void loadPeople();
+        },
       )
       .subscribe();
 
@@ -73,7 +137,7 @@ export function Gallery({ eventId }: { eventId: string }) {
       active = false;
       supabase.removeChannel(channel);
     };
-  }, [eventId, load]);
+  }, [eventId, load, loadPeople]);
 
   const selected = index !== null ? photos[index] : null;
 
@@ -95,12 +159,35 @@ export function Gallery({ eventId }: { eventId: string }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [index, goPrev, goNext]);
 
+  const selectedPerson = people.find((p) => p.id === selectedPersonId);
+
+  const handleSelect = (id: string | null) => {
+    setIndex(null);
+    setSelectedPersonId(id);
+  };
+
   return (
     <div className="px-4 pb-24 sm:px-6">
+      <div className="mx-auto max-w-5xl pt-4">
+        <PeopleStrip
+          people={people}
+          selectedId={selectedPersonId}
+          myProfileId={profile?.id ?? null}
+          onSelect={handleSelect}
+          loading={peopleLoading}
+        />
+      </div>
+
       <div className="mx-auto flex max-w-5xl items-center justify-between py-4">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <ImagesIcon className="size-4" />
-          <span>{loading ? "Carregando…" : `${photos.length} ${photos.length === 1 ? "foto" : "fotos"}`}</span>
+          <span>
+            {loading
+              ? "Carregando…"
+              : selectedPerson
+                ? `${photos.length} ${photos.length === 1 ? "foto" : "fotos"} de ${selectedPerson.name}`
+                : `${photos.length} ${photos.length === 1 ? "foto" : "fotos"}`}
+          </span>
         </div>
         <Button
           variant="ghost"
@@ -108,6 +195,7 @@ export function Gallery({ eventId }: { eventId: string }) {
           onClick={() => {
             setLoading(true);
             void load();
+            void loadPeople();
           }}
           disabled={loading}
         >
@@ -125,7 +213,9 @@ export function Gallery({ eventId }: { eventId: string }) {
         <div className="mx-auto max-w-5xl rounded-2xl border border-dashed p-12 text-center">
           <CameraOffIcon className="mx-auto mb-2 size-8 text-muted-foreground" />
           <p className="text-sm text-muted-foreground">
-            Nenhuma foto ainda. Seja a primeira pessoa a tirar uma!
+            {selectedPerson
+              ? `Nenhuma foto encontrada para ${selectedPerson.name} ainda.`
+              : "Nenhuma foto ainda. Seja a primeira pessoa a tirar uma!"}
           </p>
         </div>
       ) : (

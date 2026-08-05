@@ -19,6 +19,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createClient } from "@/lib/supabase/client";
+import { getDeviceTokenHash } from "@/lib/device-identity";
+import { triggerAnalysis } from "@/lib/trigger-analysis";
+import { useEventProfile } from "@/hooks/use-event-profile";
 import {
   PHOTO_HEIGHT,
   PHOTO_WIDTH,
@@ -68,10 +71,12 @@ export function PhotoBooth({
   const [facingMode, setFacingMode] = useState<FacingMode>("user");
   const [mirrored, setMirrored] = useState(true);
   const [cameraError, setCameraError] = useState<string | null>(null);
+  const [cameraReady, setCameraReady] = useState(false);
   const [capturedUrl, setCapturedUrl] = useState<string | null>(null);
   const [authorName, setAuthorName] = useState("");
   const [uploading, setUploading] = useState(false);
   const [flash, setFlash] = useState(false);
+  const { profile } = useEventProfile(event.id);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -98,6 +103,7 @@ export function PhotoBooth({
 
     facingRef.current = facingMode;
     void (async () => {
+      setCameraReady(false);
       try {
         if (!navigator.mediaDevices?.getUserMedia) {
           throw new Error("unsupported");
@@ -115,13 +121,27 @@ export function PhotoBooth({
           return;
         }
         streamRef.current = stream;
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          await videoRef.current.play();
+        const video = videoRef.current;
+        if (video) {
+          video.srcObject = stream;
+          await video.play();
+          await new Promise<void>((resolve) => {
+            if (video.videoWidth > 0) {
+              resolve();
+              return;
+            }
+            video.addEventListener("loadedmetadata", () => resolve(), {
+              once: true,
+            });
+          });
         }
-        if (active) setCameraError(null);
+        if (active) {
+          setCameraError(null);
+          setCameraReady(true);
+        }
       } catch {
         if (active) {
+          setCameraReady(false);
           setCameraError(
             "Não conseguimos acessar a câmera. Verifique a permissão de câmera no navegador.",
           );
@@ -147,7 +167,12 @@ export function PhotoBooth({
 
   const capture = async () => {
     const video = videoRef.current;
-    if (!video || !video.videoWidth) return;
+    if (!video || !video.videoWidth) {
+      toast.error("Câmera ainda não está pronta", {
+        description: "Aguarde um instante e tente novamente.",
+      });
+      return;
+    }
 
     setFlash(true);
     if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
@@ -220,13 +245,24 @@ export function PhotoBooth({
       .from("photos")
       .getPublicUrl(path);
 
-    const { error: insertError } = await supabase.from("photos").insert({
-      event_id: event.id,
-      frame_id: selectedFrameId,
-      storage_path: path,
-      public_url: urlData.publicUrl,
-      author_name: authorName.trim() || null,
-    });
+    const displayName =
+      authorName.trim() || profile?.name?.trim() || null;
+
+    const { data: inserted, error: insertError } = await supabase
+      .from("photos")
+      .insert({
+        id: photoId,
+        event_id: event.id,
+        frame_id: selectedFrameId,
+        storage_path: path,
+        public_url: urlData.publicUrl,
+        author_name: displayName,
+        uploaded_by_profile_id: profile?.id ?? null,
+        analysis_status: "pending",
+      })
+      .select("id")
+      .single();
+
     if (insertError) {
       toast.error("Falha ao publicar", {
         description:
@@ -235,6 +271,26 @@ export function PhotoBooth({
       setUploading(false);
       return;
     }
+
+    // Vincular foto ao perfil do dispositivo, se houver
+    try {
+      const tokenHash = await getDeviceTokenHash(event.id);
+      const linkedId = inserted?.id ?? photoId;
+      const { error: linkError } = await supabase.rpc("link_uploaded_photo", {
+        p_photo_id: linkedId,
+        p_token_hash: tokenHash,
+      });
+      if (linkError) {
+        await supabase.rpc("link_uploaded_photo_by_path", {
+          p_storage_path: path,
+          p_token_hash: tokenHash,
+        });
+      }
+    } catch {
+      // Silencioso: se nao houver perfil, a foto continua na galeria geral
+    }
+
+    triggerAnalysis(event.id);
 
     toast.success("Foto publicada!", {
       description: "Ela já aparece na galeria do evento.",
@@ -255,6 +311,7 @@ export function PhotoBooth({
         videoRef={videoRef}
         mirrored={mirrored}
         cameraError={cameraError}
+        cameraReady={cameraReady}
         flash={flash}
         selectedFrame={selectedFrame}
         onMirror={() => setMirrored((v) => !v)}
@@ -303,7 +360,7 @@ export function PhotoBooth({
                   </Label>
                   <Input
                     id="author-name"
-                    value={authorName}
+                    value={authorName || profile?.name || ""}
                     onChange={(e) => setAuthorName(e.target.value)}
                     placeholder="Ex.: Maria Souza"
                     maxLength={60}
@@ -373,6 +430,7 @@ function FullscreenCamera({
   videoRef,
   mirrored,
   cameraError,
+  cameraReady,
   flash,
   selectedFrame,
   onMirror,
@@ -383,6 +441,7 @@ function FullscreenCamera({
   videoRef: React.RefObject<HTMLVideoElement | null>;
   mirrored: boolean;
   cameraError: string | null;
+  cameraReady: boolean;
   flash: boolean;
   selectedFrame: Frame | null;
   onMirror: () => void;
@@ -475,10 +534,14 @@ function FullscreenCamera({
         <button
           type="button"
           onClick={onCapture}
-          disabled={!!cameraError}
-          aria-label="Tirar foto"
-          className="size-20 rounded-full border-4 border-white bg-white shadow-[0_0_0_4px_rgb(255_255_255/0.35)] transition-transform duration-150 active:scale-90 disabled:opacity-60"
-        />
+          disabled={!!cameraError || !cameraReady}
+          aria-label={cameraReady ? "Tirar foto" : "Aguardando câmera"}
+          className="flex size-20 items-center justify-center rounded-full border-4 border-white bg-white shadow-[0_0_0_4px_rgb(255_255_255/0.35)] transition-transform duration-150 active:scale-90 disabled:opacity-60"
+        >
+          {!cameraReady && !cameraError ? (
+            <RefreshCwIcon className="size-7 animate-spin text-black/60" />
+          ) : null}
+        </button>
 
         <button
           type="button"

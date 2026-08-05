@@ -30,6 +30,11 @@ export type Photo = {
   approved: boolean;
   archived: boolean;
   created_at: string;
+  uploaded_by_profile_id?: string | null;
+  analysis_status?: string;
+  analysis_version?: number | null;
+  analyzed_at?: string | null;
+  needs_reanalysis?: boolean;
 };
 
 export type Profile = {
@@ -48,6 +53,14 @@ export type ParticipantProfile = {
   status: string;
   created_at: string;
   updated_at: string;
+};
+
+export type EventPerson = {
+  id: string;
+  name: string;
+  reference_photo_url: string;
+  photo_count: number;
+  last_photo_at: string | null;
 };
 
 export type DeviceIdentity = {
@@ -82,12 +95,30 @@ export type FaceCluster = {
   updated_at: string;
 };
 
-export type SiteSettings = {
-  id: string;
-  email: string;
-  is_admin: boolean;
-  active: boolean;
+export type UnidentifiedCluster = {
+  cluster_id: string;
+  face_count: number;
+  sample_photo_url: string | null;
+  sample_face_id: string | null;
   created_at: string;
+};
+
+export type PersonEventEntry = {
+  profile_id: string;
+  event_id: string;
+  event_name: string;
+  event_slug: string;
+  photo_count: number;
+  created_at: string;
+};
+
+export type GlobalPerson = {
+  person_key: string;
+  display_name: string;
+  reference_photo_url: string;
+  event_count: number;
+  total_photo_count: number;
+  events: PersonEventEntry[];
 };
 
 export type SiteSettings = {
