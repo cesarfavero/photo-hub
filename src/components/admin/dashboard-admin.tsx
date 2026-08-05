@@ -12,6 +12,7 @@ import {
   UsersIcon,
 } from "lucide-react";
 import { AdminHeader } from "@/components/admin/admin-header";
+import { CreateEventDialog } from "@/components/admin/create-event-dialog";
 import { createClient } from "@/lib/supabase/server";
 import {
   average,
@@ -175,6 +176,7 @@ export async function DashboardAdmin() {
         title="Dashboard"
         subtitle="Visão geral do Photo Hub: crescimento, uso e fotos em tempo real."
       />
+      <CreateEventDialog />
       <div className="space-y-6">
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
           {kpis.map((kpi) => (

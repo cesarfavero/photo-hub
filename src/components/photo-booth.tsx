@@ -196,6 +196,7 @@ export function PhotoBooth({
 
     if (selectedFrame) {
       const img = new Image();
+      img.crossOrigin = "anonymous";
       try {
         await new Promise<void>((resolve, reject) => {
           img.onload = () => resolve();
