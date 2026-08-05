@@ -52,7 +52,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/admin`,
+        redirectTo: `${window.location.origin}/auth/callback?next=/admin`,
       },
     });
     if (error) {
@@ -95,7 +95,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
       email,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/admin`,
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=/admin`,
       },
     });
     if (error) {

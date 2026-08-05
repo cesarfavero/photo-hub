@@ -1,3 +1,5 @@
+import { getSiteUrl } from "@/lib/site-url";
+
 /**
  * Fire-and-forget call to the face analysis worker.
  * Safe to call from the browser after upload (no secret required when
@@ -25,10 +27,7 @@ export function triggerAnalysis(eventId?: string) {
 
 /** Server-side trigger with cron secret. */
 export async function triggerAnalysisServer(eventId?: string, limit = 5) {
-  const base =
-    process.env.NEXT_PUBLIC_SITE_URL ||
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null) ||
-    "http://localhost:3000";
+  const base = getSiteUrl();
 
   const params = new URLSearchParams();
   if (eventId) params.set("eventId", eventId);

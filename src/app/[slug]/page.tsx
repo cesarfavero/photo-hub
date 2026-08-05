@@ -4,16 +4,14 @@ import type { Metadata } from "next";
 import { ArrowRightIcon, ImagesIcon } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { themeVars } from "@/lib/theme";
+import { getSiteUrl } from "@/lib/site-url";
 import { PhotoBooth } from "@/components/photo-booth";
 import { EventHeader } from "@/components/event-header";
 import { EventProfileBar } from "@/components/event-profile-bar";
 
 type PageProps = { params: Promise<{ slug: string }> };
 
-const siteUrl =
-  process.env.VERCEL_PROJECT_PRODUCTION_URL
-    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-    : process.env.NEXT_PUBLIC_SITE_URL ?? "https://photo-hub-alpha.vercel.app";
+const siteUrl = getSiteUrl();
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;

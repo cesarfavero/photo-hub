@@ -1,6 +1,7 @@
 import { AdminHeader } from "@/components/admin/admin-header";
 import { CreateEventDialog } from "@/components/admin/create-event-dialog";
 import { EventCard } from "@/components/admin/event-card";
+import { getSiteUrl } from "@/lib/site-url";
 import { createClient } from "@/lib/supabase/server";
 
 export async function MyEventsDashboard() {
@@ -62,8 +63,5 @@ export async function MyEventsDashboard() {
 }
 
 function getOrigin() {
-  if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
-    return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
-  }
-  return process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+  return getSiteUrl();
 }
