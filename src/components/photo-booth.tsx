@@ -12,13 +12,11 @@ import {
   PlusIcon,
   RefreshCwIcon,
   SwitchCameraIcon,
-  UserRoundIcon,
+  Trash2Icon,
   XIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { createClient } from "@/lib/supabase/client";
 import { getDeviceTokenHash } from "@/lib/device-identity";
 import { triggerAnalysis } from "@/lib/trigger-analysis";
@@ -31,11 +29,9 @@ import {
 } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-type Step = "frame" | "camera" | "name" | "success";
+type Step = "frame" | "camera" | "success";
 
 type FacingMode = "user" | "environment";
-
-const MAX_PHOTOS = 3;
 
 function drawCover(
   ctx: CanvasRenderingContext2D,
@@ -77,6 +73,7 @@ export function PhotoBooth({
   const [cameraReady, setCameraReady] = useState(false);
   const [pendingUrl, setPendingUrl] = useState<string | null>(null);
   const [acceptedUrls, setAcceptedUrls] = useState<string[]>([]);
+  const [viewingIndex, setViewingIndex] = useState<number | null>(null);
   const [authorName, setAuthorName] = useState("");
   const [uploading, setUploading] = useState(false);
   const [flash, setFlash] = useState(false);
@@ -101,7 +98,9 @@ export function PhotoBooth({
     return () => {
       if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
       streamRef.current?.getTracks().forEach((t) => t.stop());
+      acceptedUrls.forEach((u) => URL.revokeObjectURL(u));
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -244,9 +243,7 @@ export function PhotoBooth({
 
   const acceptPending = () => {
     if (!pendingUrl) return;
-    setAcceptedUrls((prev) =>
-      prev.length < MAX_PHOTOS ? [...prev, pendingUrl] : prev,
-    );
+    setAcceptedUrls((prev) => [...prev, pendingUrl]);
     setPendingUrl(null);
   };
 
@@ -257,12 +254,16 @@ export function PhotoBooth({
     });
   };
 
-  const removeAccepted = (index: number) => {
-    setAcceptedUrls((prev) => {
-      const next = [...prev];
-      const removed = next.splice(index, 1)[0];
-      if (removed) URL.revokeObjectURL(removed);
-      return next;
+  const removePhoto = (index: number) => {
+    const removed = acceptedUrls[index];
+    const next = acceptedUrls.filter((_, i) => i !== index);
+    if (removed) URL.revokeObjectURL(removed);
+    setAcceptedUrls(next);
+    setViewingIndex((prev) => {
+      if (prev === null) return prev;
+      if (prev > index) return prev - 1;
+      if (prev === index) return next.length === 0 ? null : Math.min(index, next.length - 1);
+      return prev;
     });
   };
 
@@ -273,15 +274,11 @@ export function PhotoBooth({
     });
     acceptedUrls.forEach((u) => URL.revokeObjectURL(u));
     setAcceptedUrls([]);
+    setViewingIndex(null);
     setStep("frame");
   };
 
-  const goToName = () => {
-    if (acceptedUrls.length === 0) return;
-    setStep("name");
-  };
-
-  const publishAll = async () => {
+  const publish = async () => {
     if (acceptedUrls.length === 0) return;
     setUploading(true);
     const supabase = createClient();
@@ -367,6 +364,7 @@ export function PhotoBooth({
     setAcceptedUrls([]);
     setAuthorName("");
     setPendingUrl(null);
+    setViewingIndex(null);
 
     toast.success(
       published === 1 ? "Foto publicada!" : `${published} fotos publicadas!`,
@@ -380,6 +378,7 @@ export function PhotoBooth({
   const reset = () => {
     setPendingUrl(null);
     setAcceptedUrls([]);
+    setViewingIndex(null);
     setAuthorName("");
     setStep("frame");
   };
@@ -395,15 +394,19 @@ export function PhotoBooth({
         selectedFrame={selectedFrame}
         pendingUrl={pendingUrl}
         acceptedUrls={acceptedUrls}
-        maxPhotos={MAX_PHOTOS}
-        onAcceptPending={acceptPending}
-        onRetakePending={retakePending}
-        onRemoveAccepted={removeAccepted}
-        onContinue={goToName}
+        viewingIndex={viewingIndex}
+        authorName={authorName}
+        uploading={uploading}
+        onAuthorNameChange={setAuthorName}
+        onViewPhoto={setViewingIndex}
+        onRemovePhoto={removePhoto}
+        onPublish={publish}
         onClose={discardAll}
         onMirror={() => setMirrored((v) => !v)}
         onFlip={switchCamera}
         onCapture={capture}
+        onAcceptPending={acceptPending}
+        onRetakePending={retakePending}
       />
     );
   }
@@ -423,78 +426,6 @@ export function PhotoBooth({
             onSelect={setSelectedFrameId}
             onContinue={() => setStep("camera")}
           />
-        )}
-
-        {step === "name" && (
-          <div className="mx-auto flex max-w-md flex-col gap-5">
-            <div className="text-center">
-              <h2 className="text-lg font-semibold">Quase lá!</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Confira as fotos e informe seu nome.
-              </p>
-            </div>
-
-            <div className="flex justify-center gap-2">
-              {acceptedUrls.map((url, i) => (
-                <div
-                  key={url}
-                  className="relative h-28 w-20 overflow-hidden rounded-lg bg-black ring-1 ring-foreground/10"
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={url}
-                    alt={`Foto ${i + 1}`}
-                    className="h-full w-full object-cover"
-                  />
-                </div>
-              ))}
-            </div>
-
-            <div className="space-y-2">
-              <Label
-                htmlFor="author-name"
-                className="flex items-center gap-2"
-              >
-                <UserRoundIcon className="size-4" /> Seu nome (opcional)
-              </Label>
-              <Input
-                id="author-name"
-                value={authorName}
-                onChange={(e) => setAuthorName(e.target.value)}
-                placeholder="Ex.: Maria Souza"
-                maxLength={60}
-                className="h-11 text-base"
-              />
-            </div>
-
-            <Button
-              size="lg"
-              onClick={publishAll}
-              disabled={uploading}
-              className="w-full rounded-full"
-            >
-              {uploading ? (
-                <RefreshCwIcon className="animate-spin" />
-              ) : (
-                <CheckIcon />
-              )}
-              {uploading
-                ? "Publicando…"
-                : `Publicar ${acceptedUrls.length} ${
-                    acceptedUrls.length === 1 ? "foto" : "fotos"
-                  }`}
-            </Button>
-
-            <Button
-              size="lg"
-              variant="outline"
-              onClick={() => setStep("camera")}
-              disabled={uploading}
-              className="w-full rounded-full"
-            >
-              <ArrowLeftIcon /> Refazer fotos
-            </Button>
-          </div>
         )}
 
         {step === "success" && (
@@ -536,15 +467,19 @@ function FullscreenCamera({
   selectedFrame,
   pendingUrl,
   acceptedUrls,
-  maxPhotos,
-  onAcceptPending,
-  onRetakePending,
-  onRemoveAccepted,
-  onContinue,
+  viewingIndex,
+  authorName,
+  uploading,
+  onAuthorNameChange,
+  onViewPhoto,
+  onRemovePhoto,
+  onPublish,
   onClose,
   onMirror,
   onFlip,
   onCapture,
+  onAcceptPending,
+  onRetakePending,
 }: {
   videoRef: React.RefObject<HTMLVideoElement | null>;
   mirrored: boolean;
@@ -554,80 +489,23 @@ function FullscreenCamera({
   selectedFrame: Frame | null;
   pendingUrl: string | null;
   acceptedUrls: string[];
-  maxPhotos: number;
-  onAcceptPending: () => void;
-  onRetakePending: () => void;
-  onRemoveAccepted: (index: number) => void;
-  onContinue: () => void;
+  viewingIndex: number | null;
+  authorName: string;
+  uploading: boolean;
+  onAuthorNameChange: (value: string) => void;
+  onViewPhoto: (index: number | null) => void;
+  onRemovePhoto: (index: number) => void;
+  onPublish: () => void;
   onClose: () => void;
   onMirror: () => void;
   onFlip: () => void;
   onCapture: () => void;
+  onAcceptPending: () => void;
+  onRetakePending: () => void;
 }) {
-  if (pendingUrl) {
-    return (
-      <div className="fixed inset-0 z-50 h-dvh w-full bg-black animate-in fade-in-0 duration-200">
-        <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-center justify-between p-4">
-          <button
-            type="button"
-            onClick={onRetakePending}
-            aria-label="Tirar novamente"
-            className="pointer-events-auto flex size-10 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-md transition-colors hover:bg-black/60 active:scale-95"
-          >
-            <ArrowLeftIcon className="size-5" />
-          </button>
-
-          <span className="rounded-full bg-black/40 px-3 py-1.5 text-xs font-medium text-white backdrop-blur-md">
-            Foto {acceptedUrls.length + 1} de {maxPhotos}
-          </span>
-
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Cancelar"
-            className="pointer-events-auto flex size-10 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-md transition-colors hover:bg-black/60 active:scale-95"
-          >
-            <XIcon className="size-5" />
-          </button>
-        </div>
-
-        <div className="flex h-full items-center justify-center px-4 py-24">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={pendingUrl}
-            alt="Foto capturada"
-            className="max-h-full w-auto max-w-full rounded-lg object-contain"
-          />
-        </div>
-
-        <div className="absolute inset-x-0 bottom-0 z-10 flex items-end justify-center gap-14 px-6 pb-12">
-          <button
-            type="button"
-            onClick={onRetakePending}
-            aria-label="Tirar novamente"
-            className="flex flex-col items-center gap-2 text-white"
-          >
-            <span className="flex size-16 items-center justify-center rounded-full bg-black/40 backdrop-blur-md transition-colors hover:bg-black/60 active:scale-95">
-              <RefreshCwIcon className="size-7" />
-            </span>
-            <span className="text-xs font-medium">Refazer</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={onAcceptPending}
-            aria-label="Usar foto"
-            className="flex flex-col items-center gap-2 text-white"
-          >
-            <span className="flex size-16 items-center justify-center rounded-full bg-emerald-500 shadow-[0_0_0_4px_rgb(255_255_255/0.35)] transition-transform duration-150 active:scale-90">
-              <CheckIcon className="size-9" strokeWidth={3} />
-            </span>
-            <span className="text-xs font-medium">Usar foto</span>
-          </button>
-        </div>
-      </div>
-    );
-  }
+  const live = !pendingUrl && viewingIndex === null;
+  const viewingUrl =
+    viewingIndex !== null ? acceptedUrls[viewingIndex] ?? null : null;
 
   return (
     <div className="fixed inset-0 z-50 h-dvh w-full bg-black animate-in fade-in-0 duration-200">
@@ -655,7 +533,7 @@ function FullscreenCamera({
         <div className="animate-flash pointer-events-none absolute inset-0 z-10 bg-white" />
       ) : null}
 
-      <div className="pointer-events-none absolute inset-x-0 top-0 flex items-center justify-between p-4">
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-40 flex items-center justify-between p-4">
         <button
           type="button"
           onClick={onClose}
@@ -669,19 +547,36 @@ function FullscreenCamera({
           <span className="rounded-full bg-black/40 px-3 py-1.5 text-xs font-medium text-white backdrop-blur-md">
             {selectedFrame.name}
           </span>
-        ) : null}
+        ) : (
+          <span />
+        )}
 
-        <button
-          type="button"
-          onClick={onFlip}
-          aria-label="Trocar câmera"
-          className="pointer-events-auto flex size-10 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-md transition-colors hover:bg-black/60 active:scale-95"
-        >
-          <SwitchCameraIcon className="size-5" />
-        </button>
+        {acceptedUrls.length > 0 ? (
+          <span className="flex size-10 items-center justify-center rounded-full bg-black/40 text-xs font-semibold text-white backdrop-blur-md">
+            {acceptedUrls.length}
+          </span>
+        ) : (
+          <span className="size-10" />
+        )}
       </div>
 
-      {cameraError ? (
+      {live && !cameraError ? (
+        <div className="absolute left-1/2 top-16 z-30 w-[min(20rem,85%)] -translate-x-1/2">
+          <label className="sr-only" htmlFor="booth-author-name">
+            Seu nome
+          </label>
+          <input
+            id="booth-author-name"
+            value={authorName}
+            onChange={(e) => onAuthorNameChange(e.target.value)}
+            placeholder="Seu nome (opcional)"
+            maxLength={60}
+            className="h-10 w-full rounded-full border-0 bg-black/40 px-4 text-center text-sm text-white placeholder:text-white/60 backdrop-blur-md focus:outline-none focus:ring-2 focus:ring-white/40"
+          />
+        </div>
+      ) : null}
+
+      {cameraError && live ? (
         <div className="absolute inset-0 flex items-center justify-center bg-black p-8 text-center">
           <div className="max-w-sm space-y-3">
             <p className="text-sm text-white/90">{cameraError}</p>
@@ -696,89 +591,166 @@ function FullscreenCamera({
         </div>
       ) : null}
 
-      {acceptedUrls.length > 0 ? (
-        <div className="absolute inset-x-0 bottom-32 z-10 flex items-center justify-center gap-3 px-4">
-          <div className="flex items-center gap-2 rounded-2xl bg-black/50 p-2 backdrop-blur-md">
-            {acceptedUrls.map((url, i) => (
-              <div
-                key={url}
-                className="relative size-12 overflow-hidden rounded-lg bg-black ring-2 ring-white/40"
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={url}
-                  alt={`Foto ${i + 1}`}
-                  className="h-full w-full object-cover"
-                />
-                <button
-                  type="button"
-                  onClick={() => onRemoveAccepted(i)}
-                  aria-label="Remover foto"
-                  className="absolute -right-1 -top-1 flex size-4 items-center justify-center rounded-full bg-white text-black"
-                >
-                  <XIcon className="size-2.5" />
-                </button>
-              </div>
-            ))}
-            {acceptedUrls.length < maxPhotos ? (
-              <button
-                type="button"
-                onClick={onCapture}
-                aria-label="Adicionar nova foto"
-                className="flex size-12 items-center justify-center rounded-lg border-2 border-dashed border-white/40 text-white transition-colors hover:bg-white/10"
-              >
-                <PlusIcon className="size-5" />
-              </button>
-            ) : null}
+      {pendingUrl ? (
+        <div className="absolute inset-0 z-20 flex flex-col bg-black">
+          <div className="flex flex-1 items-center justify-center px-4 pb-36 pt-20">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={pendingUrl}
+              alt="Foto capturada"
+              className="max-h-full w-auto max-w-full rounded-lg object-contain"
+            />
           </div>
+          <div className="absolute inset-x-0 bottom-0 z-30 flex items-end justify-center gap-14 px-6 pb-12">
+            <button
+              type="button"
+              onClick={onRetakePending}
+              aria-label="Tirar novamente"
+              className="flex flex-col items-center gap-2 text-white"
+            >
+              <span className="flex size-16 items-center justify-center rounded-full bg-black/40 backdrop-blur-md transition-colors hover:bg-black/60 active:scale-95">
+                <RefreshCwIcon className="size-7" />
+              </span>
+              <span className="text-xs font-medium">Refazer</span>
+            </button>
 
-          <Button
-            size="sm"
-            onClick={onContinue}
-            disabled={acceptedUrls.length === 0}
-            className="shrink-0 rounded-full"
-          >
-            Continuar ({acceptedUrls.length})
-          </Button>
+            <button
+              type="button"
+              onClick={onAcceptPending}
+              aria-label="Usar foto"
+              className="flex flex-col items-center gap-2 text-white"
+            >
+              <span className="flex size-16 items-center justify-center rounded-full bg-emerald-500 shadow-[0_0_0_4px_rgb(255_255_255/0.35)] transition-transform duration-150 active:scale-90">
+                <CheckIcon className="size-9" strokeWidth={3} />
+              </span>
+              <span className="text-xs font-medium">Usar foto</span>
+            </button>
+          </div>
         </div>
       ) : null}
 
-      <div className="absolute inset-x-0 bottom-0 flex items-end justify-center gap-12 px-6 pb-10 sm:pb-14">
-        <button
-          type="button"
-          onClick={onFlip}
-          aria-label="Trocar câmera"
-          className="mb-6 flex size-12 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-md transition-colors hover:bg-black/60 active:scale-95"
-        >
-          <SwitchCameraIcon className="size-5" />
-        </button>
+      {viewingUrl ? (
+        <div className="absolute inset-0 z-20 flex flex-col bg-black">
+          <div className="flex flex-1 items-center justify-center px-4 pb-36 pt-20">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={viewingUrl}
+              alt={`Foto ${(viewingIndex ?? 0) + 1}`}
+              className="max-h-full w-auto max-w-full rounded-lg object-contain"
+            />
+          </div>
+          <div className="absolute inset-x-0 bottom-0 z-30 flex items-end justify-center gap-14 px-6 pb-12">
+            <button
+              type="button"
+              onClick={() => onViewPhoto(null)}
+              aria-label="Voltar"
+              className="flex flex-col items-center gap-2 text-white"
+            >
+              <span className="flex size-16 items-center justify-center rounded-full bg-black/40 backdrop-blur-md transition-colors hover:bg-black/60 active:scale-95">
+                <ArrowLeftIcon className="size-7" />
+              </span>
+              <span className="text-xs font-medium">Voltar</span>
+            </button>
 
-        <button
-          type="button"
-          onClick={onCapture}
-          disabled={!!cameraError || !cameraReady}
-          aria-label={cameraReady ? "Tirar foto" : "Aguardando câmera"}
-          className="flex size-20 items-center justify-center rounded-full border-4 border-white bg-white shadow-[0_0_0_4px_rgb(255_255_255/0.35)] transition-transform duration-150 active:scale-90 disabled:opacity-60"
-        >
-          {!cameraReady && !cameraError ? (
-            <RefreshCwIcon className="size-7 animate-spin text-black/60" />
+            <button
+              type="button"
+              onClick={() => onRemovePhoto(viewingIndex ?? 0)}
+              aria-label="Remover foto"
+              className="flex flex-col items-center gap-2 text-white"
+            >
+              <span className="flex size-16 items-center justify-center rounded-full bg-red-500/80 shadow-[0_0_0_4px_rgb(255_255_255/0.25)] transition-transform duration-150 active:scale-90">
+                <Trash2Icon className="size-7" />
+              </span>
+              <span className="text-xs font-medium">Remover</span>
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {live ? (
+        <div className="absolute inset-x-0 bottom-0 z-30 flex flex-col items-center gap-4 px-6 pb-6">
+          {acceptedUrls.length > 0 ? (
+            <div className="flex items-center gap-2 rounded-2xl bg-black/50 p-2 backdrop-blur-md">
+              <div className="flex max-w-[55vw] items-center gap-2 overflow-x-auto">
+                {acceptedUrls.map((url, i) => (
+                  <button
+                    key={url}
+                    type="button"
+                    onClick={() => onViewPhoto(i)}
+                    aria-label={`Ver foto ${i + 1}`}
+                    className="relative size-12 shrink-0 overflow-hidden rounded-lg bg-black ring-2 ring-white/40 transition-transform duration-150 hover:scale-105 active:scale-95"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={url}
+                      alt={`Foto ${i + 1}`}
+                      className="h-full w-full object-cover"
+                    />
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={onCapture}
+                  aria-label="Adicionar nova foto"
+                  className="flex size-12 shrink-0 items-center justify-center rounded-lg border-2 border-dashed border-white/40 text-white transition-colors hover:bg-white/10"
+                >
+                  <PlusIcon className="size-5" />
+                </button>
+              </div>
+              <Button
+                size="sm"
+                onClick={onPublish}
+                disabled={uploading}
+                className="shrink-0 rounded-full"
+              >
+                {uploading ? (
+                  <RefreshCwIcon className="animate-spin" />
+                ) : (
+                  <CheckIcon />
+                )}
+                {uploading ? "Publicando…" : "Publicar"}
+              </Button>
+            </div>
           ) : null}
-        </button>
 
-        <button
-          type="button"
-          onClick={onMirror}
-          aria-label="Espelhar imagem"
-          className={cn(
-            "mb-6 flex size-12 items-center justify-center rounded-full text-white backdrop-blur-md transition-colors active:scale-95",
-            mirrored
-              ? "bg-black/40 ring-2 ring-white/40"
-              : "bg-black/40 ring-1 ring-white/20",
-          )}
-        >
-          <FlipHorizontalIcon className="size-5" />
-        </button>
-      </div>
+          <div className="flex items-end justify-center gap-12">
+            <button
+              type="button"
+              onClick={onFlip}
+              aria-label="Trocar câmera"
+              className="mb-6 flex size-12 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-md transition-colors hover:bg-black/60 active:scale-95"
+            >
+              <SwitchCameraIcon className="size-5" />
+            </button>
+
+            <button
+              type="button"
+              onClick={onCapture}
+              disabled={!!cameraError || !cameraReady}
+              aria-label={cameraReady ? "Tirar foto" : "Aguardando câmera"}
+              className="flex size-20 items-center justify-center rounded-full border-4 border-white bg-white shadow-[0_0_0_4px_rgb(255_255_255/0.35)] transition-transform duration-150 active:scale-90 disabled:opacity-60"
+            >
+              {!cameraReady && !cameraError ? (
+                <RefreshCwIcon className="size-7 animate-spin text-black/60" />
+              ) : null}
+            </button>
+
+            <button
+              type="button"
+              onClick={onMirror}
+              aria-label="Espelhar imagem"
+              className={cn(
+                "mb-6 flex size-12 items-center justify-center rounded-full text-white backdrop-blur-md transition-colors active:scale-95",
+                mirrored
+                  ? "bg-black/40 ring-2 ring-white/40"
+                  : "bg-black/40 ring-1 ring-white/20",
+              )}
+            >
+              <FlipHorizontalIcon className="size-5" />
+            </button>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -787,7 +759,6 @@ function StepIndicator({ step }: { step: Step }) {
   const steps: { key: Step; label: string }[] = [
     { key: "frame", label: "Moldura" },
     { key: "camera", label: "Foto" },
-    { key: "name", label: "Nome" },
     { key: "success", label: "Publicar" },
   ];
   const currentIndex = steps.findIndex((s) => s.key === step);

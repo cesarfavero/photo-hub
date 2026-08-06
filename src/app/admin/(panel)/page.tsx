@@ -23,7 +23,14 @@ export default async function AdminDashboardPage() {
     : { data: null };
 
   if (profile?.is_admin) {
-    return <DashboardAdmin />;
+    return (
+      <>
+        <MyEventsDashboard />
+        <div className="mt-12 border-t pt-10">
+          <DashboardAdmin />
+        </div>
+      </>
+    );
   }
 
   return <MyEventsDashboard />;
