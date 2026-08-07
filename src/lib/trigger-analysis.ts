@@ -33,7 +33,7 @@ export async function triggerAnalysisServer(eventId?: string, limit = 5) {
   if (eventId) params.set("eventId", eventId);
   params.set("limit", String(limit));
 
-  const secret = process.env.ANALYSIS_CRON_SECRET;
+  const secret = process.env.CRON_SECRET || process.env.ANALYSIS_CRON_SECRET;
   const headers: HeadersInit = {};
   if (secret) headers.Authorization = `Bearer ${secret}`;
 

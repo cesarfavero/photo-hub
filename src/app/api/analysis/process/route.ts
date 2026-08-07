@@ -14,7 +14,8 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 function authorize(request: NextRequest): { ok: boolean; privileged: boolean } {
-  const secret = process.env.ANALYSIS_CRON_SECRET;
+  const secret =
+    process.env.CRON_SECRET || process.env.ANALYSIS_CRON_SECRET;
   const header = request.headers.get("authorization");
   const bearer = header?.startsWith("Bearer ") ? header.slice(7) : null;
   const query = request.nextUrl.searchParams.get("secret");
