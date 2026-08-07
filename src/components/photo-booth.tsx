@@ -79,6 +79,7 @@ export function PhotoBooth({
   const facingRef = useRef<FacingMode>("user");
   const flashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const namePrefilledRef = useRef(false);
+  const cameraBoxRef = useRef<HTMLDivElement>(null);
 
   const selectedFrame = frames.find((f) => f.id === selectedFrameId) ?? null;
 
@@ -205,8 +206,9 @@ export function PhotoBooth({
 
     const canvas = document.createElement("canvas");
     const dpr = window.devicePixelRatio || 1;
-    let width = Math.round(window.innerWidth * dpr);
-    let height = Math.round(window.innerHeight * dpr);
+    const box = cameraBoxRef.current?.getBoundingClientRect();
+    let width = Math.round((box?.width || window.innerWidth) * dpr);
+    let height = Math.round((box?.height || window.innerHeight) * dpr);
     const longest = Math.max(width, height);
     if (longest > 4096) {
       const scale = 4096 / longest;
@@ -416,6 +418,7 @@ export function PhotoBooth({
         onCapture={capture}
         onAcceptPending={acceptPending}
         onRetakePending={retakePending}
+        boxRef={cameraBoxRef}
       />
     );
   }
@@ -489,6 +492,7 @@ function FullscreenCamera({
   onCapture,
   onAcceptPending,
   onRetakePending,
+  boxRef,
 }: {
   videoRef: React.RefObject<HTMLVideoElement | null>;
   mirrored: boolean;
@@ -511,13 +515,17 @@ function FullscreenCamera({
   onCapture: () => void;
   onAcceptPending: () => void;
   onRetakePending: () => void;
+  boxRef: React.RefObject<HTMLDivElement | null>;
 }) {
   const live = !pendingUrl && viewingIndex === null;
   const viewingUrl =
     viewingIndex !== null ? acceptedUrls[viewingIndex] ?? null : null;
 
   return (
-    <div className="fixed inset-0 z-50 h-dvh w-full bg-black animate-in fade-in-0 duration-200">
+    <div
+      ref={boxRef}
+      className="fixed inset-0 z-50 h-dvh w-full bg-black animate-in fade-in-0 duration-200"
+    >
       <video
         ref={videoRef}
         autoPlay
