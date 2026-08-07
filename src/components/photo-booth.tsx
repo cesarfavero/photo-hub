@@ -21,12 +21,7 @@ import { createClient } from "@/lib/supabase/client";
 import { getDeviceTokenHash } from "@/lib/device-identity";
 import { triggerAnalysis } from "@/lib/trigger-analysis";
 import { useEventProfile } from "@/hooks/use-event-profile";
-import {
-  PHOTO_HEIGHT,
-  PHOTO_WIDTH,
-  type Event,
-  type Frame,
-} from "@/lib/types";
+import type { Event, Frame } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 type Step = "frame" | "camera" | "success";
@@ -209,10 +204,17 @@ export function PhotoBooth({
     }
 
     const canvas = document.createElement("canvas");
-    canvas.width = PHOTO_WIDTH;
-    canvas.height = frameImg
-      ? Math.round(PHOTO_WIDTH * (frameImg.height / frameImg.width))
-      : PHOTO_HEIGHT;
+    const dpr = window.devicePixelRatio || 1;
+    let width = Math.round(window.innerWidth * dpr);
+    let height = Math.round(window.innerHeight * dpr);
+    const longest = Math.max(width, height);
+    if (longest > 4096) {
+      const scale = 4096 / longest;
+      width = Math.round(width * scale);
+      height = Math.round(height * scale);
+    }
+    canvas.width = width;
+    canvas.height = height;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
@@ -227,7 +229,14 @@ export function PhotoBooth({
     );
 
     if (frameImg) {
-      ctx.drawImage(frameImg, 0, 0, canvas.width, canvas.height);
+      drawCover(
+        ctx,
+        frameImg,
+        frameImg.width,
+        frameImg.height,
+        canvas.width,
+        canvas.height,
+      );
     }
 
     const blob = await new Promise<Blob | null>((resolve) =>
@@ -525,7 +534,7 @@ function FullscreenCamera({
         <img
           src={selectedFrame.image_url}
           alt=""
-          className="pointer-events-none absolute inset-0 h-full w-full object-contain"
+          className="pointer-events-none absolute inset-0 h-full w-full object-cover"
         />
       ) : null}
 
