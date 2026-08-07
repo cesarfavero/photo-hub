@@ -593,15 +593,15 @@ function FullscreenCamera({
 
       {pendingUrl ? (
         <div className="absolute inset-0 z-20 flex flex-col bg-black">
-          <div className="flex flex-1 items-center justify-center px-4 pb-36 pt-20">
+          <div className="relative min-h-0 flex-1 pt-20">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={pendingUrl}
               alt="Foto capturada"
-              className="max-h-full w-auto max-w-full rounded-lg object-contain"
+              className="absolute inset-0 m-auto max-h-full max-w-full rounded-lg object-contain"
             />
           </div>
-          <div className="absolute inset-x-0 bottom-0 z-30 flex items-end justify-center gap-14 px-6 pb-12">
+          <div className="relative z-30 flex shrink-0 items-center justify-center gap-14 px-6 pb-12 pt-2">
             <button
               type="button"
               onClick={onRetakePending}
@@ -631,15 +631,15 @@ function FullscreenCamera({
 
       {viewingUrl ? (
         <div className="absolute inset-0 z-20 flex flex-col bg-black">
-          <div className="flex flex-1 items-center justify-center px-4 pb-36 pt-20">
+          <div className="relative min-h-0 flex-1 pt-20">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={viewingUrl}
               alt={`Foto ${(viewingIndex ?? 0) + 1}`}
-              className="max-h-full w-auto max-w-full rounded-lg object-contain"
+              className="absolute inset-0 m-auto max-h-full max-w-full rounded-lg object-contain"
             />
           </div>
-          <div className="absolute inset-x-0 bottom-0 z-30 flex items-end justify-center gap-14 px-6 pb-12">
+          <div className="relative z-30 flex shrink-0 items-center justify-center gap-14 px-6 pb-12 pt-2">
             <button
               type="button"
               onClick={() => onViewPhoto(null)}
